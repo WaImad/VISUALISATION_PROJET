@@ -1,0 +1,591 @@
+---
+title: ""  
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+    number_sections: TRUE
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE) #Activer le cache des chunks pour accélérer les recompilations
+options("install.lock"=FALSE) #Désactiver le verrouillage d’installation des packages
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) ## configure le chemin du dossier automatiquement
+```
+
+FARSI Imad - COVA CORREA Camilo
+
+[**Master 1 MAS - Université Rennes 2**](https://formations.univ-rennes2.fr/fr/formations/master-37/master-mention-mathematiques-appliquees-statistique-parcours-sciences-des-donnees-intelligence-artificielle-JFTJBMKM.html)
+
+[Pensez à numéroter vos tables et graphiques, cela vous permet de faire des rappels dans votre texte. Attention également au titre et à la bonne définition des axes. Chaque graphique est commenté, il est parfois préférable de les regrouper au sein d'une même fenêtre pour que le rapport soit plus agréable à lire. N'hésitez pas à faire des sélections de graphiques intéressants plutôt que de les présenter d'une manière mécanique. Il ne faut pas utiliser le code de vos variables dans vos commentaires mais revenir sur leur signification.]{style="color:red;"}
+
+# 1. Introduction
+
+### 1.1 Contexte et problématique
+
+#### **1.1 Contexte et problématique**
+
+Le football moderne a dépassé le simple cadre sportif pour devenir une véritable industrie financière mondialisée. Avec des droits télévisuels records et des montants de transferts qui ne cessent de croître, la valorisation des joueurs est devenue un enjeu stratégique majeur pour les clubs. Le "marché des transferts" fonctionne comme un marché financier où les clubs achètent et vendent des actifs (les joueurs) dont la valeur fluctue.
+
+Cependant, la détermination de ce prix reste complexe et parfois opaque. Si certaines variables semblent évidentes (l'âge, le talent perçu), d'autres sont plus difficiles à quantifier. **Dans quelle mesure la valeur marchande d'un joueur est-elle expliquée par ses performances statistiques sur le terrain ?** C'est la problématique centrale de ce projet.
+
+### 1.2 Motivation et intérêt du sujet
+
+L'intérêt de ce sujet est double :
+
+1.  **Économique et Managérial :** Pour les clubs, éviter de surpayer un joueur ("overvaluation") ou dénicher une pépite sous-évaluée ("undervaluation") est une question de survie financière. Comprendre les déterminants du prix permet d'optimiser la gestion de l'actif "joueurs".
+
+2.  **Statistique :** Le football est entré dans l'ère de la "Data" (Moneyball). Ce projet permet d'appliquer des méthodes de régression linéaire sur des données réelles, hétérogènes (gardiens vs attaquants) et présentant des caractéristiques intéressantes (effets non linéaires de l'âge, valeurs aberrantes des superstars)\
+
+### 1.3 Hypothèses
+
+-   **Hypothèse 1 (Performance) :** Les statistiques offensives (Buts + Passes décisives) ont un impact marginal plus fort sur la valeur que les statistiques défensives ou de construction.
+
+-   **Hypothèse 2 (Cycle de vie) :** La relation entre l'âge et la valeur n'est pas linéaire mais quadratique (forme en cloche), avec un pic de valeur situé entre 23 et 28 ans. La valeur de « l’actif footballeur » atteint son maximum vers 27-28 ans.. ([https://www.lemonde.fr/blog/ecosport/2017/06/13/trente-ans-lage-du-declin-de-la-valeur-de-transfert/](#0){.uri})
+
+-   **Hypothèse 3 (Effet de poste) :** À performance égale, les attaquants bénéficient d'une valeur marchande plus haute par rapport aux défenseurs et gardiens.
+
+-   **Hypothèse 4 (Temps de jeu) :** Le statut du joueur (temps de jeu accumulé) est un pré-requis fondamental à sa valorisation.
+
+### 1.4 Plan de l'étude
+
+Nous structurerons notre analyse de la manière suivante : Dans un premier temps, nous présenterons les données et procéderons au nettoyage nécessaire (**Section 2**). Nous réaliserons ensuite une analyse descriptive univariée et bivariée pour visualiser les tendances lourdes du marché (**Section 3**). La **Section 4** sera consacrée à la modélisation économétrique, à l'interprétation des coefficients et à la discussion de la robustesse des résultats. Enfin, nous conclurons sur les apports et les limites de notre modèle (**Section 5**).
+
+# 2. Cadre méthodologique
+
+-   Pour mesurer l'impact des variables sur la valeur marchande d'un joueur, nous utilisons la Régression Linéaire Multiple avec la méthode des Moindres Carrés Ordinaires (MCO). Cette méthoe vise à déterminer les coefficients $\hat{\beta}$ qui minimisent la somme des carrés des erreurs.
+
+    Nous utiliserons la Valeur Marchande (VM) comme variable dépendante eet nous essayerons de l'expliquer par les performances des joueurs pendant la saison passé.
+
+    $Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + \cdots + \varepsilon_i$
+
+-   Dans le jeu de données nous avons gardés 10 variables qui peuvent selon nous determiner de manière importante la valeur marchande. Parmis ces 10 variables, nous devons faire un choix, nous n'allons donc pas utiliser la Nationalité dans les variables explicatives car cela demanderai de calculer beaucoup de $\hat{\beta}$, de plus certains $\hat{\beta}$ ne corresponderait qu'à une seule nationalité. La variable Squad souffre du meme problème bien que le nombre d'équipes est plus faible et que l'impact est plus significatif.
+
+# 3. **Analyse des données**
+
+## 3.1. Cadre des données
+
+Les données utilisées dans le cadre de cette étude portent sur la saison 2024-2025 de la Ligue 1 (championnat de France). Concernant la variable cible, les valeurs marchandes étant mises à jour trimestriellement pour les championnats majeurs, nous avons retenu la valorisation arrêtée à l'issue de la saison. Ce choix permet de capturer l'impact de l'ensemble des performances sportives de l'année écoulée sur le prix final du joueur.
+
+|  |  |  |  |
+|------------------|------------------|------------------|------------------|
+| Code de la série | Définition | Unité / Type | Source |
+| **name** | Identifiant unique du joueur (Nom complet). | Nominale -Character | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Age** | Âge du joueur au moment de la collecte. | Numeric | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Nation** | Nationalité sportive du joueur . | Nominale - Factor | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Pos** | Position principale sur le terrain (FW - Attaquant, MF-MIllieu, DF-Défenseur, GK-Gardien). | Nominale (Cat.) - Factor | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Squad** | Club d'appartenance (Ligue 1). | Nominale - Factor | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **MP** | *Matches Played*. Nombre de rencontres disputées. | Nombre (Nb) - numeric | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Min** | *Minutes*. Temps de jeu effectif total sur la saison. | Minutes - numeric | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **G.A** | *Goals + Assists*. Cumul des buts marqués et passes décisives. | Nombre (Nb) -Numeric | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **xG.xAG** | *Non-Penalty Expected Goals + Expected Assisted Goals*. Espérance de buts et passes décisives **par 90 minutes**. Mesure la dangerosité moyenne du joueur sur un match complet. | Ratio (0-n) -numeric | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **KP** | *Key Passes*. Passes menant directement à un tir. | Nombre (Nb) | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Tkl.Int** | *Tackles + Interceptions*. Actions défensives réussies. | Nombre (Nb) | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **Save.** | *Save Percentage*. Taux d'arrêts (Gardiens uniquement). | Pourcentage (%) | Kaggle ([Football Players Stats (2024-2025)](https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025)) |
+| **value** | **Variable Cible (Y)**. Valeur marchande estimée. | Euros (€) | Kaggle ([5.7M+ Records -Most Comprehensive Football Dataset](https://www.kaggle.com/datasets/xfkzujqjvx97n/football-datasets)) |
+
+## 3.2 Prétraitement et nettoyage des données
+
+Présenter les traitements effectués sur les données:
+
+Afin d'obtenir notre jeu de donnée [transfermarkt](#0),([https://www.kaggle.com/datasets/xfkzujqjvx97n/football-datasets](#0){.uri}).
+
+```{r}
+library(dplyr)
+
+#CODE DE CREATION DU DATA FRAME
+##### 
+
+#readLines('./donnees/player_valuations.csv')
+player_value = read.csv('./donnees/player_latest_market_value.csv',sep=',')
+
+#readLines('./donnees/player_profiles.csv')
+player_name = read.csv('./donnees/player_profiles.csv',sep=',')
+
+
+player_value = merge(player_name,player_value, by = "player_id")
+
+player_value$name <- gsub(" \\(.*\\)", "", player_value$player_name)
+# et merce chat
+
+#readLines('./donnees/players_data-2024_2025.csv')
+player_stat = read.csv('./donnees/players_data-2024_2025.csv',sep=',')
+
+
+#rennomage de la colonne name pour merge ensuite les deux datasets
+player_stat$name = player_stat$Player
+
+df_players <- merge(player_stat, player_value, by = "name")
+
+
+#Dedoublonnage pour ne garder que la valeur marchande la plus récente
+
+df_players$date <- as.Date(df_players$date_unix, format = "%Y-%m-%d")
+
+df_sorted <- df_players[order(df_players$name, df_players$date, decreasing = TRUE), ]
+
+df_clean <- df_sorted[!duplicated(df_sorted$name), ]
+df_players <- df_clean
+
+df_players$Player = NULL 
+
+
+# ON va se concentrer seulement sur les joueurs evoluant en LIGUE 1 
+df_players <- df_players[df_players$Comp == 'fr Ligue 1',]
+
+# Parmis les 292 variables nous avons décidé de garder seulement les variables qui nous semblent pertinentes. 
+#NOus allons garder : Le nom du joueur (name)
+#l'age du joueur (Age)
+# la nationalité du joueur (Nation)
+# le poste du joueur (Pos)
+#le nom de son équipe (squad)
+# le nombre de match joué (MP)
+#Nombre de minutes joués (Min)
+# Nombre de passe décisives et de buts (GA)
+# NOmbre de But  et de passé décisives attendus hors pénalty (npxG)
+# passe clés (KP)
+# Tacles et interceptions (Tkl+Int) 
+# Pourcentage d'arrêts effectués (Save%)
+# et evidemment la variable à expliquer la valeur marchande value
+
+df <- df_players[, c("date","name", "Age", "Nation", "Pos", "Squad", "MP", 
+                     "Min", "G.A", "xG.xAG", "KP", "Tkl.Int", "Save.", 
+                     "value")]
+
+# on ne prends que les valeurs apès le 17/05/2025, la fin du championnat, les données vont jusqu'en septembre 2025 donc on a pas besoin de les limiter dans le temps 
+df <- df[df$date >= as.Date("2025-05-17"),]
+
+#ON transforme en facteurs les variables qualitatives ('Nation','Pos','Squad')
+
+df$Nation <- as.factor(df$Nation)
+df$Pos    <- as.factor(df$Pos)
+df$Squad  <- as.factor(df$Squad)
+
+# Nous avons remarquer que des joueurs peuvent avoir plusieurs postes (variable Poste). Nous considérons que leurs poste principal est le premier affiché dans la variable "Poste"
+
+levels(df$Pos)
+levels(df$Pos)[c(2,3)] = "DF"
+levels(df$Pos)
+levels(df$Pos)[c(3,4)] = "FW"
+levels(df$Pos)
+levels(df$Pos)[c(5,6)] = "MF"
+levels(df$Pos)
+
+# on remplace les NA par des 0 dans la variable Save.
+df$Save.[is.na(df$Save.)] <- 0
+
+#CREATION DU CSV 'df.csv' qu'on utilisera dans le rendu, ca evitera de devoir executer tout le code à chaque fois pour obtenir le df.
+
+write.csv(df, "df.csv", row.names = FALSE)
+
+
+##### 
+# Importer le dataframe final présent dans les dossier
+readLines('df.csv')
+
+read.csv(file = 'df.csv',stringsAsFactors = T,sep = ',',dec = '.')
+```
+
+-   Sélection d'individus : Comme explicité dans le code ci-dessus, nous avons retenu les joueurs évoluant dans le championnat français LIGUE 1 durant la saison 2024-2025
+
+-   Sélection des variables : Il a été crucial de reduire le nombre de variables du jeu de données, qui contenant 248 variables. A partir de nos connaissances footbalistiques, nous avons determinés les varaibles les plus pertinentes pour notre sujet. Je vous renvoie à la **section 3.1** qui explicite les variables choisi. NOus avons choisi de prendre une variable plus paralanter par poste, Par exmple nous avons choisi de garder la variable 'KP' (les passes clés) qui sont plus parlantes pour les joueurs évoluant au milieu de terrain.
+
+## 3.3 Analyse descriptive univariée des données
+
+Vous devez décrire les données utilisées dans la modélisation, après nettoyage.
+
+-   Tableau de statistiques descriptives = données quantitatives / catégorielles
+
+```{r}
+library(ggplot2)
+##### CODE DE CREATION DES GRAPHIQUES ET STATS DESCRIPTIVEs
+
+summary(df)
+
+sum(is.na(df))
+
+# Distribution de la valeurs marchandes des joueurs
+ggplot(df, aes(x = value / 1000000)) + 
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "#69b3a2", color = "#e9ecef", alpha = 0.8) +
+  geom_density(color = "#404080", lwd = 1) +
+  labs(
+    title = "Distribution des Valeurs Marchandes",
+    subtitle = "Histogramme et courbe de densité",
+    x = "Valeur Marchande (en Millions d'€)",
+    y = "Densité"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+
+
+# Boxplot global de la valeur marchande
+
+ggplot(df, aes(y = value / 1000000)) + 
+  geom_boxplot(fill = "lightblue", color = "darkblue", outlier.colour = "red", outlier.shape = 1) +
+  labs(
+    title = "Dispersion de la Valeur Marchande (Tous joueurs)",
+    y = "Valeur Marchande (en Millions d'€)",
+    x = "" 
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.text.x = element_blank(), # On cache les graduations X inutiles
+    axis.ticks.x = element_blank()
+  )
+# On remarque tout de suite qu'il y a des valeurs abérrantes, comme nous la aussi montré la distribution de la valeurs marchandes, on  a bcp de valeurs proche en dessous des 20 millions et que qql joueurs au dessus
+
+# Boxplot de la valeur marchande par Position
+ggplot(df, aes(x = Pos, y = value / 1000000, fill = Pos)) + 
+  geom_boxplot(outlier.colour = "red", outlier.alpha = 0.5) +
+  scale_fill_brewer(palette = "Pastel1") + # Une palette douce pour distinguer les postes
+  labs(
+    title = "Distribution de la Valeur Marchande par Poste",
+    x = "Position",
+    y = "Valeur Marchande (en Millions d'€)",
+    fill = "Position"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "none" # La légende n'est pas nécessaire si l'axe X est clair
+  )
+# ON remaruqe que le boxplot des gardiens et deja bien plus petit que les autres. à l'inverse on remarque que le bowplot les attaquants est plus grand
+
+# Boxplot de la valeur marchande par Position
+ggplot(df, aes(x = Pos, y = value / 1000000, fill = Pos)) + 
+  geom_boxplot(outlier.colour = "red", outlier.alpha = 0.5) +
+  scale_fill_brewer(palette = "Pastel1") + # Une palette douce pour distinguer les postes
+  labs(
+    title = "Distribution de la Valeur Marchande par Poste",
+    x = "Position",
+    y = "Valeur Marchande (en Millions d'€)",
+    fill = "Position"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "none" # La légende n'est pas nécessaire si l'axe X est clair
+  )
+
+# Boxplot de la valeur marchande par tranche d'age
+#Creation d'une variable age classe qui ne sera pas utilisé dans la RL
+df_plot <- df
+df_plot$age_class <- cut(df_plot$Age,4)
+
+#Tranche d'age
+#16-22 ans (Espoirs / Post-formation) : C'est la phase de développement. La valeur est souvent spéculative (basée sur le potentiel).
+
+#23-28 ans (L'âge d'or / Prime) : C'est statistiquement la période où les joueurs atteignent leur pic de performance et de valeur marchande.
+
+#29-34 ans (Expérimentés) : Le niveau reste haut, mais la valeur marchande commence à chuter car le potentiel de revente diminue.
+
+#34-40 ans (Vétérans) : Fin de carrière.
+
+table(df_plot$age_class)
+
+
+ggplot(df_plot, aes(x = age_class, y = value / 1000000, fill = age_class)) +
+  geom_boxplot(outlier.colour = "red", outlier.alpha = 0.6) +
+  scale_fill_brewer(palette = "Blues") +
+  labs(
+    title = "Valeur Marchande selon la Tranche d'Âge",
+    subtitle = "Cycle de vie économique d'un joueur",
+    x = "Tranche d'âge",
+    y = "Valeur Marchande (en Millions d'€)",
+    fill = "Âge"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "none"
+  )
+
+
+
+# Sélection et tri des 10 meilleurs
+top_10 <- df %>%
+  arrange(desc(value)) %>%
+  select(name, Squad, Pos, Age, value) %>%
+  head(10)
+
+# Affichage du tableau
+knitr::kable(
+  top_10,
+  col.names = c("Nom", "Équipe", "Poste", "Âge", "Valeur (€)"),
+  caption = "Top 10 des joueurs par Valeur Marchande",
+  format.args = list(big.mark = " ")
+)
+
+# on remarque la qualité d'effectifs du PSG
+
+## GRAPHIQUE Relation temps de jeu vs valeur marchande
+
+# 1. Création de la variable 'Statut' en fonction des minutes
+# On découpe : < 500 min (Peu utilisé), 500-1500 (Rotation), 1500-2500 (Titulaire), > 2500 (Indiscutable)
+df <- df %>%
+  mutate(Statut = cut(Min, 
+                      breaks = c(-1, 500, 1500, 2500, 5000),
+                      labels = c("Peu utilisé", "Rotation", "Titulaire", "Cadre / Indiscutable")))
+
+# 2. Boxplot
+ggplot(df, aes(x = Statut, y = value / 1000000, fill = Statut)) +
+  geom_boxplot(outlier.colour = "red", outlier.alpha = 0.5) +
+  scale_fill_brewer(palette = "YlOrRd") + # Palette du jaune au rouge (plus c'est chaud, plus c'est important)
+  labs(
+    title = "Valeur Marchande selon le Statut du joueur",
+    subtitle = "Basé sur le temps de jeu cumulé",
+    x = "Statut dans l'équipe",
+    y = "Valeur Marchande (Millions €)",
+    fill = "Statut"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+#"Ce graphique montre que la valeur médiane (trait noir) augmente progressivement avec le statut, 
+#confirmant une relation positive, tandis que les points isolés révèlent l'existence de profils atypiques (stars blessées ou talents en devenir) qui conservent une forte valeur malgré un faible temps de jeu."
+
+# calcul de la valeur marchande moyenne des joueurs en fonction de leur club.
+VM_club <- df %>%
+  group_by(Squad) %>%
+  summarise(Moyenne_Valeur_Marchande = mean(value, na.rm = TRUE)) %>%
+  arrange(desc(Moyenne_Valeur_Marchande))
+
+library(ggplot2)
+
+ggplot(VM_club, aes(x = reorder(Squad, Moyenne_Valeur_Marchande), y = Moyenne_Valeur_Marchande, fill = Squad)) +
+  geom_col() + 
+  labs(
+    title = "Valeur Marchande Moyenne selon le Club du joueur",
+    x = "Club",
+    y = "Valeur Marchande (Millions €)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1) 
+  )
+
+# la valeur marchande moyenne des joueurs est beaucoup plus grande dans les grands clubs.
+
+```
+
+-   Les données sont composées de 427 observations de 10 variables explicatives, certaines quantitatives , d'autres qualitatives sans aucune donnée manquantes.
+
+## 3.4 Analyse descriptive bivariée des données
+
+-   Matrice de corrélation :
+
+    ```{r}
+    library(corrplot)
+
+    mat_corr <- cor(df[, sapply(df, is.numeric)], use = "complete.obs")
+    corrplot(mat_corr, method = "color", type = "upper", tl.col = "black", tl.srt = 45, addCoef.col = "black")
+    ```
+
+-   Cette matrice de corrélation nous donne les liens entre les variables et la Value que l'on cherche à expliquer. Il y a une correlation positive forte entre les buts et passé décisives (GA) ainsi qu'avec le nombre de passes clés (KP), tandis qu'il n'existe presque pas de relation entre la valeur marchande et l'age, ou le nombre d'arret.
+
+    ```{r}
+    # grpahique qui montre la distribution de la valeur marchande selon le nombre de Buts/Assists
+
+    #Les nuages de points qui montrent la corrélation entre les variable suit le meme code dans ce chunk et dans le suivant, il affiche le nuage de point, une droite de regression et un intervalle de confiance à 95%
+
+    ggplot(df, aes(x = G.A , y = value )) +
+      geom_point() +
+      scale_fill_brewer(palette = "Blues") +
+      labs(
+        title = "Valeur Marchande Moyenne selon le Nombre de Buts/assists",
+        x = "Buts/assists",
+        y = "Valeur Marchande (Millions €)"
+      ) +
+      geom_smooth(method = "lm", se = TRUE) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none"
+      )
+
+
+    # grpahique qui montre la distribution de la valeur marchande selon le nombre de Passes clé (Key Pass)
+    ggplot(df, aes(x = KP , y = value )) +
+      geom_point() +
+      scale_fill_brewer(palette = "Blues") +
+      labs(
+        title = "Valeur Marchande Moyenne selon le Nombre de Key Pass",
+        x = "Key Pass",
+        y = "Valeur Marchande (Millions €)"
+      ) +
+      geom_smooth(method = "lm", se = TRUE) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none"
+      )
+    ```
+
+-   On remarque aussi des correlations positives entre les variables explicatives comme par exemple entre les minutes joués et les matchs joués qui sont corrélés à 0.92, ou bien entre les passes clés et les G.A, cela veut dire que l'on va probablement etre amené à enlever l'une de ces variables du modèle afin d'avoir un modèle moins couteux. la plupart des variables quantitatives sont également corrélé avec les variables qui comptabilisent le temps de jeu (MP et Min) ce qui parrait logique, plus un joueur joue, plus il a l'occasion d'intervenir dans le match.
+
+    ```{r}
+    # grpahique qui montre le nombre de passes clés selon le nombre de Buts/Assists
+
+    ggplot(df, aes(x = G.A , y = KP )) +
+      geom_point() +
+      scale_fill_brewer(palette = "Blues") +
+      labs(
+        title = "G.A selon le Nombre de Key Pass",
+        x = "G.A",
+        y = "KP"
+      ) +
+        geom_smooth(method = "lm", se = TRUE) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none"
+      )
+
+    # grpahique qui montre le nombre de minutes joués selon le nombre de matchs joués
+
+    ggplot(df, aes(x = MP , y = Min )) +
+      geom_point() +
+      scale_fill_brewer(palette = "Blues") +
+      labs(
+        title = "Minutes joués selon le Nombre de Match joués",
+        x = "Matchs joués",
+        y = "Minutes joués"
+      ) +
+        geom_smooth(method = "lm", se = TRUE) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none"
+      )
+
+    # grpahique qui montre le nombre d'intervention deffensives (tacles + interceptions) selon le nombre de Minutes joués
+
+    ggplot(df, aes(x = Min , y = Tkl.Int )) +
+      geom_point() +
+      scale_fill_brewer(palette = "Blues") +
+      labs(
+        title = "Nombre d'interceptions et de tacles selon le nombre de minutes joués",
+        x = "Minutes joués",
+        y = "Tacles + Interceptions"
+      ) +
+        geom_smooth(method = "lm", se = TRUE) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none"
+      )
+    ```
+
+# **4. Analyse et discussion des résultats**
+
+## 4.1 Modélisation principale
+
+Présentation et interprétation des résultats obtenus : utiliser un tableau récapitulatif des modèles principaux testés
+
+### 4.1.1 Modélisation générale
+
+```{r}
+#On décide de retirer la variable Nation, car il y a  trop de nationalités différentes avec parfois un seul joueur par pays, ce qui fait "exploser" notre modèle (trop de coefficients à estimer).
+
+reg1 <- lm(value ~ Age  + Pos + Squad + MP + Min + G.A + xG.xAG + KP + Tkl.Int + Save. , data=df )
+
+summary(reg1)
+
+
+```
+
+On interprète ici le $R^2$ ajusté car il y a plusieurs variables explicatives dans notre modèle.61,06 % de la variance de la valeur marchande des joueurs de Ligue 1 est expliquée par le modèle, c'est-à-dire par l'ensemble des variables explicatives retenues (Performance offensive, Âge, Temps de jeu, Club, etc.). C'est un score assez satisfaisant.
+
+On utilise un test de Fisher avec comme hypothèse nulle $H_0$ : tous les coefficients sont nuls sauf la constante (c'est-à-dire $\beta_1 = \beta_2 = ... = \beta_k = 0$).La statistique du test de Fisher est $F_{obs} = 24.85$ et la p-value est très largement inférieure au seuil de 5% (\$p \< 2.2e\^{-16}\$).Donc on rejette l'hypothèse nulle. Il y a au moins un coefficient différent de zéro qui explique la valeur marchande.
+
+Conclusion : Le modèle est globalement satisfaisant et très significatif.
+
+Si on s'intéresse à une variable en particulier, la performance offensive (Buts + Passes décisives) est-elle significative ? On utilise le test de Student avec $H_0 : \beta_{G.A} = 0$.La statistique de test est $t_{obs} = 5.172$ et la p-value est $3.68e-07$ ($< 0.05$).On rejette fortement l'hypothèse nulle, le coefficient est **fortement significatif** au seuil de 5%. La performance décisive (Buts et Passes) est donc un déterminant majeur de la valeur.
+
+Si le nombre de "Buts + Passes décisives" augmente de **1 unité** (c'est-à-dire un but ou une passe de plus dans la saison), alors la valeur marchande du joueur augmente en moyenne, toutes choses égales par ailleurs, de **875 800 euros**.
+
+Cependant, l'analyse du premier modèle a révélé des variables non significatives et les analyses descriptives nous ont indiqué une forte multicollinéarité entre le nombre de matchs (MP) et les minutes jouées (Min) (**corrélation de 0,92)**.
+
+Nous allons donc appliqué une sélection **Backward** pour éliminer les variables superflues et supprimé **MP** au profit de **Min**, cette dernière offrant une mesure plus précise de l'activité du joueur.
+
+### 4.1.2 Modèle avec selection "Backwards"
+
+```{r}
+### (Sélection "Backwards")
+
+## En utilisant le package MASS vu en cours. stepAIC() choisit le meilleur par AIC.
+
+library(MASS)
+# estimation du modèle complet on a enlevé juste MP et Save.
+reg2 <- lm(value ~ Age  + Pos + Squad  + Min + G.A + xG.xAG + KP + Tkl.Int , data=df )
+# Backward regression model
+step.model_backward <- stepAIC(reg2, direction = "both", 
+                               trace = FALSE)
+summary(step.model_backward)
+```
+
+La comparaison entre le modèle initial et le modèle issu de la sélection *Backward* met en évidence le fait que le coefficient de détermination ajusté (R2 ajusté) reste parfaitement stable autour de **61,09%**. Ce qui signifie que les vartiables supprimés ( MP, Tacles + interventions et Key passes) n'apportaient pas d'information supplémentaire.
+
+Notons un point intéressant, les coeff des modalités de la variable Squad met en lumière une forte hétérogénéité structurelle sur le marché de la Ligue 1. Alors que les coefficients des clubs de milieu ou de bas de tableau ne sont généralement pas significativement différents de la constante, ceux des clubs du "Top 5" (Paris S-G, Monaco, Lille, Lyon, Marseille) présentent une significativité statistique très forte (p-value \< 0.01).
+
+Ce résultat valide l'existence d'un [effet label](https://hal.science/tel-03556912/) (comme pour les marques de vetements de luxe).D'après notre modèle, Toutes choses égales par ailleurs (c'est-à-dire à âge, poste et statistiques de performance strictement identiques), le simple fait d'appartenir à un club de haut de tableau confère au joueur une valorisation supplémentaire. Ou bien ces clubs sont plus riches et donc peuvznt se permettre d'acheter des joueurs plus haute valeur marchande.
+
+## 4.2 Robustesse des résultats
+
+Hypothèses des MCO - nomalités / hétéroscédasticité / ...
+
+```{r}
+
+
+library(ggplot2)
+
+
+df_residus <- data.frame(Residus = residuals(reg2))
+
+# 2. On trace l'histogramme
+ggplot(df_residus, aes(x = Residus)) +
+  # L'histogramme (en bleu)
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "#69b3a2", color = "white", alpha = 0.7) +
+  # La courbe de densité réelle (en rouge)
+  geom_density(color = "red", size = 1) +
+  
+  labs(
+    title = "Distribution des Résidus du Modèle",
+    subtitle = "Comparaison avec la loi Normale théorique (pointillés)",
+    x = "Résidus",
+    y = "y"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+```
+
+## 4.2 Analyses complémentaires
+
+### 4.2.1 CHANGEMENT STRUCTURELLES TEST DE CHOW avec les postes ?
+
+-   Transformation de variables / effets non linéaires
+
+-   Changement structurel
+
+-   Effets croisés de variables
+
+# **5. Conclusion générale et perspectives**
+
+Rappel de la problématique et de la méthodologie
+
+Synthèse des résultats principaux
+
+Contributions du mémoire, apports scientifiques et/ou applicatifs
+
+Perspectives d’amélioration ou de recherche future
+
+# Bibliographie - Source des données
+
+-   <https://ec.europa.eu/eurostat/fr/web/main/data>
+
+-   <https://statistiques-locales.insee.fr/#c=home>
+
+QUESTIONS : est ce qu'il faut ajouter les boxplots de la section 3.3 dans la section 3.4
