@@ -2,6 +2,7 @@
 library(shiny)
 library(bslib)
 library(bsicons)
+library(plotly)
 library(DT)
 
 # Définition du thème
@@ -25,7 +26,7 @@ page_navbar(
   sidebar = sidebar(
     width = 300,
     h4("Filtres"),
-    # Les choix sont vides au départ, le serveur les remplira !
+    
     selectInput("squad", "Équipe :", choices = "Chargement..."),
     checkboxGroupInput("position", "Poste :", choices = "Chargement..."),
     sliderInput("min_minutes", "Minutes jouées minimum :", min = 0, max = 3500, value = 500)
@@ -122,7 +123,7 @@ page_navbar(
         ),
         card(
           card_header("Top 10 : Valeurs Marchandes", class = "bg-light"),
-          plotOutput("plot_value", height = "350px")
+          plotlyOutput("plot_value", height = "350px")
         )
       )
   ),
@@ -134,5 +135,13 @@ page_navbar(
       card_header("Données brutes filtrables"),
       DTOutput("table_data")
     )
+  ),
+  
+nav_panel(
+  title = "Analyse Globale du championnat",
+  card(
+    card_header("Valeur Marchande selon la Tranche d'Âge"),
+    plotOutput("plot_age_value", height = "350px")
   )
+)
 )
