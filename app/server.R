@@ -2,11 +2,13 @@
 library(shiny)
 library(ggplot2)
 library(dplyr)
+library(plotly)
 library(DT)
 library(scales)
 
 # 1. CHARGEMENT DES DONNÉES (au démarrage du serveur)
 df <- read.csv("data/df.csv", stringsAsFactors = FALSE)
+df$age_class <- cut(df$Age,4)
 
 function(input, output, session) {
   
@@ -70,19 +72,45 @@ function(input, output, session) {
       theme_minimal() + theme(legend.position = "bottom")
   })
   
-  output$plot_value <- renderPlot({
+  output$plot_value <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
     
     top_10 <- df_f %>% arrange(desc(value)) %>% head(10)
     
-    ggplot(top_10, aes(x = reorder(name, value), y = value, fill = Pos)) +
+    p <- ggplot(top_10, aes(x = reorder(name, value), y = value, fill = Pos,
+                            # Ajout du texte personnalisé pour l'infobulle (tooltip)
+                            text = paste("Joueur :", name, "<br>Valeur :", round(value / 1e6, 2), "M€","Club :", Squad))) +
       geom_bar(stat = "identity") +
       coord_flip() + 
-      geom_text(aes(label = paste0(round(value / 1e6, 2), " M€")), hjust = -0.1, size = 3) +
       scale_y_continuous(labels = label_number(scale = 1e-6, suffix = " M€")) +
       labs(x = "", y = "Valeur Marchande", fill = "Poste") +
-      theme_minimal() + theme(legend.position = "bottom")
+      theme_minimal() + 
+      theme(legend.position = "bottom")
+    
+    ggplotly(p, tooltip = "text") %>%
+      layout(legend = list(orientation = "h", x = 0, y = -0.2)) # Garde la légende en bas
+  })
+  
+  output$plot_age_value <- renderPlot({
+    df_f <- data_filtered()
+    if(nrow(df_f) == 0) return(NULL)
+    
+      ggplot(df_f, aes(x = age_class, y = value / 1000000, fill = age_class)) +
+      geom_boxplot(outlier.colour = "red", outlier.alpha = 0.6) +
+      scale_fill_brewer(palette = "Blues") +
+      labs(
+        title = "Valeur Marchande selon la Tranche d'Âge",
+        subtitle = "Cycle de vie économique d'un joueur",
+        x = "Tranche d'âge",
+        y = "Valeur Marchande (en Millions d'€)",
+        fill = "Âge"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        legend.position = "none"
+      )
   })
   
   # --- 6. TABLEAU INTERACTIF ---
