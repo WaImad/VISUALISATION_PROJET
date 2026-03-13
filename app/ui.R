@@ -5,12 +5,12 @@ library(bsicons)
 library(plotly)
 library(DT)
 
-# Définition du thème
+# Définition du thème ( A modifier si vous voulez)
 theme_ligue1 <- bs_theme(
   bg = "#07111F",        # Bleu nuit très profond (Fond de l'application)
   fg = "#F8F9FA",        # Texte en blanc cassé pour une bonne lisibilité
-  primary = "#00FFFF",   # Le fameux Bleu Cyan électrique du nouveau logo L1 !
-  secondary = "#1A2E44", # Bleu marine pour les cartes et bordures
+  primary = "#085fff",   # Le fameux Bleu Cyan électrique du nouveau logo L1 !
+  secondary = "#085fff", # Bleu marine pour les cartes et bordures
   success = "#00C853",   # Vert vif pour les stats positives
   danger = "#FF1744",    # Rouge vif pour les alertes
   base_font = font_google("Montserrat"),    # Police moderne et sportive
@@ -19,9 +19,16 @@ theme_ligue1 <- bs_theme(
 
 
 page_navbar(
+
   theme = theme_ligue1,
-  title = "Scouting Dashboard | Ligue 1 2024-2025",
-  
+  title = tags$span(
+    tags$img(
+      src = "https://ligue1.com/images/Logo_Ligue1.webp", 
+      height = "35px", 
+      style = "margin-right: 10px;"
+    ), 
+    "Scouting Dashboard | L1 24-25"
+  ),
   # BARRE LATÉRALE (Filtres)
   sidebar = sidebar(
     width = 300,
