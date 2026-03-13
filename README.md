@@ -3,8 +3,9 @@ Ce repertoire git a pour but d'améliorer le déroulement du développement de l
 
 *A rendre le 16 mars 2026*
 
-reférences du jeu de données : - https://www.kaggle.com/datasets/xfkzujqjvx97n/football-datasets
-- https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025
+reférences du jeu de données : 
+- https://www.kaggle.com/datasets/xfkzujqjvx97n/football-datasets (ici on a utilisé les tables "player_profiles.csv" et "player_latest_market_value.csv")
+- https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025 ( ici on a utilisé la table "players_data-2024_2025.csv" )
 
 - Consigne :
   Groupe de 3
