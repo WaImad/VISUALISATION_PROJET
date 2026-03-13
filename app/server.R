@@ -7,7 +7,7 @@ library(DT)
 library(scales)
 
 # 1. CHARGEMENT DES DONNÉES (au démarrage du serveur)
-df <- read.csv("app/data/dataset_stat_large.csv", stringsAsFactors = FALSE)
+df <- read.csv("data/dataset_stat_large.csv", stringsAsFactors = FALSE)
 df$age_class <- cut(df$Age,4)
 
 function(input, output, session) {
@@ -58,20 +58,63 @@ function(input, output, session) {
   })
   
   # --- 5. GRAPHIQUES ---
-  output$plot_efficiency <- renderPlot({
+  # -- GRAPHIQUE XG vs XG + XAG
+  output$plot_efficiency <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
     
-    ggplot(df_f, aes(x = xG.xAG, y = G.A, color = Pos)) +
-      geom_point(size = 3, alpha = 0.7) +
-      geom_text(data = df_f %>% filter(G.A >= quantile(G.A, 0.9, na.rm=TRUE)), 
-                aes(label = name), vjust = -1, size = 3, check_overlap = TRUE) +
-      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
-      labs(x = "Expected Goals + Expected Assists (xG.xAG)", 
+    p <- ggplot(df_f, aes(x = (xG + xAG), y = G.A, color = Pos, 
+                          # l'infobulle personnalisée (en HTML)
+                          text = paste0(
+                            "<b>", name, "</b><br>",
+                            "Club : ", Squad, "<br>",
+                            "Temps de jeu : ", Min, " min<br>",
+                            "---------------------<br>",
+                            "G+A (Réel) : <b>", G.A, "</b><br>",
+                            "xG+xAG (Attendu) : <b>", (xG + xAG), "</b><br>",
+                            "Différence (Sur-performance) : ", round(G.A - (xG + xAG), 2)
+                          ))) +
+      geom_point(size = 3, alpha = 0.8) +
+      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "#FF1744") +
+      labs(x = "Expected Goals + Expected Assists (xG + xAG)", 
            y = "Buts + Passes Décisives réels (G.A)", color = "Poste") +
-      theme_minimal() + theme(legend.position = "bottom")
+      theme_minimal() + 
+      theme(
+        legend.position = "bottom",
+        text = element_text(color = "#F8F9FA"),   
+        axis.text = element_text(color = "#F8F9FA"),  
+        panel.grid.major = element_line(color = "#1A2E44"),
+        panel.grid.minor = element_blank()
+      )
+    
+
+    ggplotly(p, tooltip = "text") %>%
+      layout(
+        legend = list(orientation = "h", x = 0, y = -0.2), # Légende horizontale en bas
+        paper_bgcolor = 'rgba(0,0,0,0)', # Fond transparent
+        plot_bgcolor  = 'rgba(0,0,0,0)', # Fond transparent
+        hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white")) # Couleur de l'infobulle
+      )
   })
   
+  output$commentaire_efficiency <- renderText({
+    df_f <- data_filtered()
+    if(nrow(df_f) == 0) return("Aucun joueur ne correspond aux critères de filtrage.")
+    
+    top_efficiency <- df_f %>%
+      mutate(efficiency = G.A - (xG + xAG)) %>%
+      arrange(desc(efficiency)) %>%
+      head(1)
+    
+    paste0(
+      "Les joueurs au dessus de la droite sont ceux qui sont très efficace, ils marquent plus de buts qu'espérer.
+      Au contraire les joueurs en dessous de la droite sont des joueurs en sous-efficacité, ils marquent moins de but qu'attendus ",
+      "Le joueur le plus efficient est <b>", top_efficiency$name, "</b> avec une sur-performance de <b>", 
+      round(top_efficiency$efficiency, 2), "</b> (G.A : ", top_efficiency$G.A, " vs xG+xAG : ", round(top_efficiency$xG + top_efficiency$xAG, 2), ")."
+    )
+  })
+  
+  # -- GRAPHIQUE TOP 10 VALUE
   output$plot_value <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
@@ -86,10 +129,70 @@ function(input, output, session) {
       scale_y_continuous(labels = label_number(scale = 1e-6, suffix = " M€")) +
       labs(x = "", y = "Valeur Marchande", fill = "Poste") +
       theme_minimal() + 
-      theme(legend.position = "bottom")
+      theme(
+        legend.position = "bottom",
+        text = element_text(color = "#F8F9FA"),
+        axis.text = element_text(color = "#F8F9FA"),
+        panel.grid.major.x = element_line(color = "#1A2E44"),
+        panel.grid.major.y = element_blank()
+      )
     
     ggplotly(p, tooltip = "text") %>%
-      layout(legend = list(orientation = "h", x = 0, y = -0.2)) # Garde la légende en bas
+      layout(
+        legend = list(orientation = "h", x = 0, y = -0.2),
+        paper_bgcolor = 'rgba(0,0,0,0)', 
+        plot_bgcolor  = 'rgba(0,0,0,0)',
+        hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white"))
+      )
+  
+  })
+  
+  
+  # -- GRAPHIQUE TEMPS DE JEU
+  output$plot_timeplay <- renderPlotly({
+    df_f <- data_filtered()
+    if(nrow(df_f) == 0) return(NULL)
+    
+    # On isole le Top 10 des joueurs avec le plus de minutes (Min)
+    top_10_min <- df_f %>% 
+      arrange(desc(Min)) %>% 
+      head(10)
+    
+    # Création du graphique
+    p <- ggplot(top_10_min, aes(
+      x = reorder(name, Min), 
+      y = Min, 
+      fill = Pos,
+      # Infobulle HTML personnalisée
+      text = paste0(
+        "Club : ", Squad, "<br>",
+        "Âge : ", Age, " ans<br>",
+        "---------------------<br>",
+        "Minutes jouées : <b>", Min, " min</b><br>",
+        "Matchs joués (MP) : ", MP, "<br>",
+        "Moyenne : <b>", round(Min / MP, 1), "</b> min/match"
+      )
+    )) +
+      geom_bar(stat = "identity") +
+      coord_flip() + 
+      labs(x = "", y = "Minutes jouées (Min)", fill = "Poste") +
+      theme_minimal() + 
+      theme(
+        legend.position = "bottom",
+        text = element_text(color = "#F8F9FA"),
+        axis.text = element_text(color = "#F8F9FA"),
+        panel.grid.major.x = element_line(color = "#1A2E44"),
+        panel.grid.major.y = element_blank()
+      )
+    
+    # Conversion en graphique interactif Plotly
+    ggplotly(p, tooltip = "text") %>%
+      layout(
+        legend = list(orientation = "h", x = 0, y = -0.2),
+        paper_bgcolor = 'rgba(0,0,0,0)', 
+        plot_bgcolor  = 'rgba(0,0,0,0)',
+        hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white"))
+      )
   })
   
   output$plot_age_value <- renderPlot({
@@ -113,6 +216,8 @@ function(input, output, session) {
       )
   })
   
+  
+
   # --- 6. TABLEAU INTERACTIF ---
   output$table_data <- renderDT({
     data_filtered() %>%
