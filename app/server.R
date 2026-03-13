@@ -7,7 +7,7 @@ library(DT)
 library(scales)
 
 # 1. CHARGEMENT DES DONNÉES (au démarrage du serveur)
-df <- read.csv("data/df.csv", stringsAsFactors = FALSE)
+df <- read.csv("app/data/dataset_stat_large.csv", stringsAsFactors = FALSE)
 df$age_class <- cut(df$Age,4)
 
 function(input, output, session) {
