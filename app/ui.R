@@ -51,6 +51,10 @@ page_navbar(
         card_header("⚽ Introduction au Projet", class = "bg-primary text-white"),
         card_body(
           p("Bienvenue sur ce tableau de bord interactif dédié à l'analyse des performances des joueurs de Ligue 1 pour la saison 2024-2025."),
+          tags$img(
+            src = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXlpZ2dsZ29hN2M0NXFkaXlnMXNla2VzanRsbnphanFpOG83MTYxbiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/KWvok8lP2noNDRTpXw/giphy.gif", 
+            width = "28%"
+          ),
           p("L'objectif de cette application est de croiser les statistiques sportives individuelles (temps de jeu, efficacité offensive, solidité défensive) avec la valeur marchande estimée des joueurs. Cet outil permet ainsi d'identifier les profils sur-performants, d'évaluer l'apport réel d'un joueur par rapport à son prix, et de fournir une aide visuelle au recrutement (Scouting).")
         )
       ),
@@ -171,7 +175,7 @@ page_navbar(
           title = "Meilleur Buteur/Passeur (G.A)",
           value = textOutput("val_meilleur_ga"),
           p(textOutput("nom_meilleur_ga")),
-          showcase = bs_icon("star-fill"),
+          showcase = uiOutput("img_meilleur_ga"), 
           theme = "success"
         ),
         value_box(
@@ -185,21 +189,25 @@ page_navbar(
       layout_columns(
         col_widths = c(6, 6),
         card(
-          card_header("Efficacité : G.A vs Expected (xG.xAG)", class = "bg-primary text-dark"),
+          card_header("💥 Efficacité : G.A vs Expected (xG.xAG)", class = "bg-primary text-dark"),
           plotlyOutput("plot_efficiency", height = "350px"),
           htmlOutput("commentaire_efficiency")
         ),
         
         card(
-          card_header("Top 10 : Valeurs Marchandes", class = "bg-primary text-dark"),
+          card_header("💵 Top 10 : Valeurs Marchandes", class = "bg-primary text-dark"),
           plotlyOutput("plot_value", height = "350px")
         )
       ),
     layout_columns(
-      col_widths = 6,
+      col_widths = c(6,6),
       card(
         card_header("⏱️ Top 10 : Joueurs les plus utilisés (Temps de jeu)", class = "bg-primary text-dark"),
         plotlyOutput("plot_timeplay", height = "350px")
+      ),
+      card(
+        card_header("🌍 Top 10 : Nationalités les plus représentées", class = "bg-primary text-dark"),
+        plotlyOutput("plot_nationalities", height = "350px")
       )
     )
   ),

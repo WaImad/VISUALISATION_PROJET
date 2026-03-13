@@ -57,6 +57,29 @@ function(input, output, session) {
     paste0(round(mean(df_f$value, na.rm = TRUE) / 1e6, 2), " M€")
   })
   
+  output$img_meilleur_ga <- renderUI({
+    df_f <- data_filtered()
+    
+    if(nrow(df_f) == 0) return(bs_icon("star-fill")) 
+    
+    best_player <- df_f %>% 
+      filter(G.A == max(G.A, na.rm = TRUE)) %>% 
+      slice(1) 
+    
+    # On récupère l'URL
+    url_image <- best_player$player_image_url
+        if(is.null(url_image) || is.na(url_image) || url_image == "") {
+      return(bs_icon("star-fill"))
+    }
+    
+    # Si l'URL existe, on crée l'image HTML
+    tags$img(
+      src = url_image, 
+      #formattage de l'image
+      style = "max-height: 100px; width: auto; border-radius: 20px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"
+    )
+  })
+  
   # --- 5. GRAPHIQUES ---
   # -- GRAPHIQUE XG vs XG + XAG
   output$plot_efficiency <- renderPlotly({
@@ -97,21 +120,31 @@ function(input, output, session) {
       )
   })
   
-  output$commentaire_efficiency <- renderText({
+  output$commentaire_efficiency <- renderUI({ 
     df_f <- data_filtered()
-    if(nrow(df_f) == 0) return("Aucun joueur ne correspond aux critères de filtrage.")
+    if(nrow(df_f) == 0) return(HTML("Aucun joueur ne correspond aux critères de filtrage."))
     
     top_efficiency <- df_f %>%
-      mutate(efficiency = G.A - (xG + xAG)) %>%
+      
+      mutate(efficiency = G.A - (xG +xAG)) %>% 
       arrange(desc(efficiency)) %>%
       head(1)
     
-    paste0(
-      "Les joueurs au dessus de la droite sont ceux qui sont très efficace, ils marquent plus de buts qu'espérer.
-      Au contraire les joueurs en dessous de la droite sont des joueurs en sous-efficacité, ils marquent moins de but qu'attendus ",
-      "Le joueur le plus efficient est <b>", top_efficiency$name, "</b> avec une sur-performance de <b>", 
-      round(top_efficiency$efficiency, 2), "</b> (G.A : ", top_efficiency$G.A, " vs xG+xAG : ", round(top_efficiency$xG + top_efficiency$xAG, 2), ")."
+    
+    texte_html <- paste0(
+      
+      "<div style='font-size: 13px; line-height: 1; text-align: justify;'>", 
+      
+      "Les joueurs au dessus de la droite sont ceux qui sont très efficaces, ils marquent plus de buts qu'espéré.<br>",
+      "Au contraire les joueurs en dessous de la droite sont des joueurs en sous-efficacité, ils marquent moins de buts qu'attendus.<br><br>",
+      "Le joueur le plus efficient est <b>", top_efficiency$name, "</b> avec une sur-performance d'actions décisives <b>", 
+      round(top_efficiency$efficiency, 2), "</b> (G.A : ", top_efficiency$G.A, " vs xG+xAG : ", round((top_efficiency$xG + top_efficiency$xAG), 2), ").",
+      
+      "</div>" 
     )
+    
+    # On renvoie le texte en tant que vrai HTML
+    HTML(texte_html) 
   })
   
   # -- GRAPHIQUE TOP 10 VALUE
@@ -194,6 +227,49 @@ function(input, output, session) {
         hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white"))
       )
   })
+  
+  # GRAPHIQUE - TOP 10 NATIONALITE
+  output$plot_nationalities <- renderPlotly({
+    df_f <- data_filtered()
+    
+
+    if(nrow(df_f) == 0 || !"Nation" %in% names(df_f)) return(NULL)
+    
+    # Calcul du nombre de joueurs par nationalité (Top 10)
+    top_nations <- df_f %>%
+      count(Nation, name = "Nombre") %>%     # Compte les occurrences de chaque Nation
+      arrange(desc(Nombre)) %>%              # Trie du plus grand au plus petit
+      head(10)                               # Garde le Top 10
+    
+    # Création du graphique ggplot
+    p <- ggplot(top_nations, aes(
+      x = reorder(Nation, Nombre), 
+      y = Nombre, 
+      fill = Nation,
+      text = paste0("<b>", Nation, "</b><br>Joueurs : <b>", Nombre, "</b>") # Infobulle
+    )) +
+      geom_bar(stat = "identity", show.legend = FALSE) + 
+      coord_flip() + 
+      labs(x = "", y = "Nombre de joueurs") +
+      theme_minimal() + 
+      theme(
+        text = element_text(color = "#F8F9FA"),
+        axis.text = element_text(color = "#F8F9FA"),
+        panel.grid.major.x = element_line(color = "#1A2E44"),
+        panel.grid.major.y = element_blank()
+      )
+    
+    # Conversion en graphique interactif Plotly
+    ggplotly(p, tooltip = "text") |>
+      hide_legend() |>
+      layout(
+        show.legend = FALSE,
+        paper_bgcolor = 'rgba(0,0,0,0)', 
+        plot_bgcolor  = 'rgba(0,0,0,0)',
+        hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white"))
+      )
+  })
+  
   
   output$plot_age_value <- renderPlot({
     df_f <- data_filtered()
