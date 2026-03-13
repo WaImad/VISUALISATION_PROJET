@@ -19,8 +19,9 @@ theme_ligue1 <- bs_theme(
 
 
 page_navbar(
-
+  
   theme = theme_ligue1,
+  id = "mes_onglets",
   title = tags$span(
     tags$img(
       src = "https://ligue1.com/images/Logo_Ligue1.webp", 
@@ -31,16 +32,28 @@ page_navbar(
   ),
   # BARRE LATÉRALE (Filtres)
   sidebar = sidebar(
+    open = FALSE,
     width = 300,
-    h4("Filtres"),
+    id = "ma_sidebar",
+    h4("Filtres de selection"),
+    selectizeInput("squad", "Équipe :", choices = "Chargement..."),
+    selectizeInput("position", "Poste :", choices = "Chargement...", multiple = TRUE),
+    sliderInput("min_minutes", "Minutes jouées minimum :", min = 0,max = 3500, value = 500),
     
-    selectInput("squad", "Équipe :", choices = "Chargement..."),
-    checkboxGroupInput("position", "Poste :", choices = "Chargement..."),
-    sliderInput("min_minutes", "Minutes jouées minimum :", min = 0, max = 3500, value = 500)
+    conditionalPanel(
+      condition = "input.mes_onglets == 'onglet_stat'",
+      hr(), 
+      h4("Mode Comparaison"),
+      selectizeInput("joueur1", "Sélectionnez un joueur :", choices = "Chargement..."),
+      checkboxInput("activer_comp", "Comparer avec un autre joueur", FALSE),
+      uiOutput("choix_equipe_j2"), 
+      uiOutput("select_joueur2") 
+    )
   ),
   
   nav_panel(
     title = "Contexte & Données",
+    id = "onglet_contexte",
     icon = bs_icon("info-circle"),
     
     layout_columns(
@@ -153,52 +166,53 @@ page_navbar(
             </div>
           ')
         )
-    )
+      )
     )
   ),
   # --- ONGLET 1 : ANALYSE DES PERFORMANCES ---
   nav_panel(
     title = "Analyse des Performances",
-      
-     
-      
-      # CONTENU PRINCIPAL
-      layout_columns(
-        fill = FALSE,
-        value_box(
-          title = "Joueurs analysés",
-          value = textOutput("val_joueurs"),
-          showcase = bs_icon("people-fill"),
-          theme = "primary"
-        ),
-        value_box(
-          title = "Meilleur Buteur/Passeur (G.A)",
-          value = textOutput("val_meilleur_ga"),
-          p(textOutput("nom_meilleur_ga")),
-          showcase = uiOutput("img_meilleur_ga"), 
-          theme = "success"
-        ),
-        value_box(
-          title = "Valeur moyenne de l'effectif",
-          value = textOutput("val_moyenne"),
-          showcase = bs_icon("cash-coin"),
-          theme = "info"
-        )
+    value = "onglet_perf",
+    
+    
+    
+    # CONTENU PRINCIPAL
+    layout_columns(
+      fill = FALSE,
+      value_box(
+        title = "Joueurs analysés",
+        value = textOutput("val_joueurs"),
+        showcase = bs_icon("people-fill"),
+        theme = "primary"
+      ),
+      value_box(
+        title = "Meilleur Buteur/Passeur (G.A)",
+        value = textOutput("val_meilleur_ga"),
+        p(textOutput("nom_meilleur_ga")),
+        showcase = uiOutput("img_meilleur_ga"), 
+        theme = "success"
+      ),
+      value_box(
+        title = "Valeur moyenne de l'effectif",
+        value = textOutput("val_moyenne"),
+        showcase = bs_icon("cash-coin"),
+        theme = "info"
+      )
+    ),
+    
+    layout_columns(
+      col_widths = c(6, 6),
+      card(
+        card_header("💥 Efficacité : G.A vs Expected (xG.xAG)", class = "bg-primary text-dark"),
+        plotlyOutput("plot_efficiency", height = "350px"),
+        htmlOutput("commentaire_efficiency")
       ),
       
-      layout_columns(
-        col_widths = c(6, 6),
-        card(
-          card_header("💥 Efficacité : G.A vs Expected (xG.xAG)", class = "bg-primary text-dark"),
-          plotlyOutput("plot_efficiency", height = "350px"),
-          htmlOutput("commentaire_efficiency")
-        ),
-        
-        card(
-          card_header("💵 Top 10 : Valeurs Marchandes", class = "bg-primary text-dark"),
-          plotlyOutput("plot_value", height = "350px")
-        )
-      ),
+      card(
+        card_header("💵 Top 10 : Valeurs Marchandes", class = "bg-primary text-dark"),
+        plotlyOutput("plot_value", height = "350px")
+      )
+    ),
     layout_columns(
       col_widths = c(6,6),
       card(
@@ -211,21 +225,60 @@ page_navbar(
       )
     )
   ),
+  nav_panel(
+    title = "Analyse statistique",
+    value = "onglet_stat",
+    
+    mainPanel(
+      width = 12,
+      
+      # --- 1. ZONE DU HAUT : Profils et Bilans ---
+      uiOutput("layout_profils",class = "bg-primary text-dark"),
+      uiOutput("layout_stats"),
+      
+      br(),
+      
+      # --- 2. GRAPHIQUE 1 : Le Radar  ---
+      conditionalPanel(
+        # La condition est écrite en Javascript : "Si le menu joueur1 n'est pas vide"
+        condition = "input.joueur1 != ''",
+        card(
+          class = "shadow-sm mb-4",
+          card_header("🕸️ Profil Global", class= " bg-primary text-darkk"),
+          card_body(
+            plotlyOutput("radar_chart", height = "500px") 
+          )
+        ),
+        
+        # --- 3. GRAPHIQUE 2 : Le Nuage de Points  ---
+        card(
+          class = "shadow-sm mb-4",
+          card_header("🎯 Analyse Détaillée", class = "bg-primary text-dark"),
+          card_body(
+            uiOutput("choix_vars_scatter"),
+            plotlyOutput("scatter_plot", height = "500px")
+          )
+        )
+      )
+    ) # Fin du mainPanel
+  ), # Fin du nav_panel
   
   # --- ONGLET 2 : BASE DE DONNÉES ---
   nav_panel(
     title = "Explorateur de Données",
+    value = "onglet_data",
     card(
       card_header("Données brutes filtrables"),
       DTOutput("table_data")
     )
   ),
   
-nav_panel(
-  title = "Analyse Globale du championnat",
-  card(
-    card_header("Valeur Marchande selon la Tranche d'Âge"),
-    plotOutput("plot_age_value", height = "350px")
+  nav_panel(
+    title = "Analyse Globale du championnat",
+    value = "onglet_global",
+    card(
+      card_header("Valeur Marchande selon la Tranche d'Âge"),
+      plotOutput("plot_age_value", height = "350px")
+    )
   )
-)
 )
