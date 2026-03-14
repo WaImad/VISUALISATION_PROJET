@@ -273,12 +273,30 @@ page_navbar(
     )
   ),
   
+  # debut onglet Analyse globale du championnat
   nav_panel(
     title = "Analyse Globale du championnat",
     value = "onglet_global",
     card(
-      card_header("Valeur Marchande selon la Tranche d'Âge"),
-      plotOutput("plot_age_value", height = "350px")
+      card_header("📊 Comparaison par Catégories de Performance"),
+      card_body(
+        fluidRow(
+          column(6, selectInput("global_y", "Statistique à mesurer (Axe Vertical) :", 
+                                choices = c("Valeur Marchande" = "value", 
+                                            "Buts + Passes Décisives" = "G.A", 
+                                            "Actions attendues" = "xG.xAG", 
+                                            "Temps de jeu" = "Min"))),
+          column(6, selectInput("global_group", "Regrouper par (Axe Horizontal) :", 
+                                choices = c("Aucun" = "Aucun",
+                                            "Tranches d'âge" = "tranche_age",
+                                            "Niveau de Buts + Passes" = "cat_ga",
+                                            "Niveau de Valeur (€)" = "cat_val",
+                                            "Niveau de Temps de jeu" = "cat_min",
+                                            "Équipe" = "Squad")))
+        ),
+        plotlyOutput("plot_global_final", height = "550px")
+      )
     )
   )
+  # fin
 )

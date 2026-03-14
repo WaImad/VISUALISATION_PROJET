@@ -7,7 +7,7 @@ library(DT)
 library(scales)
 
 # 1. CHARGEMENT DES DONNÉES (au démarrage du serveur)
-df <- read.csv("dataset_stat_large.csv", stringsAsFactors = FALSE)
+df <- read.csv("data/dataset_stat_large.csv", stringsAsFactors = FALSE)
 df$age_class <- cut(df$Age, 4)
 
 df <- df %>%
@@ -267,97 +267,97 @@ function(input, output, session) {
   })
   
   # --- GRAPHIQUE RADAR ---
-output$radar_chart <- renderPlotly({
+  output$radar_chart <- renderPlotly({
+    
+    # 1. On s'assure qu'un joueur 1 est sélectionné
+    req(input$joueur1)
+    
+    # 2. Infos du Joueur 1
+    infos_j1 <- df %>% filter(name == input$joueur1) %>% slice(1)
+    infos <- df %>% filter(name == input$joueur1) %>% slice(1)
+    
+    poste <- infos$Pos 
+    
+    # 3. SÉLECTION DES STATS SELON LE POSTE
+    if (grepl("Attaquant", poste) || grepl("FW", poste)) {
+      stats_radar <- c("Buts" = "Gls", "Passes D." = "Ast", "xG" = "xG", "Tirs" = "Sh", "Tirs Cadrés" = "SoT")
+      titre <- "Profil Offensif"
       
-      # 1. On s'assure qu'un joueur 1 est sélectionné
-      req(input$joueur1)
+    } else if (grepl("Milieu", poste) || grepl("MF", poste)) {
+      stats_radar <- c("Passes R." = "Cmp", "Passes Prg." = "PrgP", "Passes D." = "Ast", "Courses Prg." = "PrgC", "Tacles" = "Tkl")
+      titre <- "Profil Création / Relais"
       
-      # 2. Infos du Joueur 1
-      infos_j1 <- datalarge %>% filter(name == input$joueur1) %>% slice(1)
-      infos <- datalarge %>% filter(name == input$joueur1) %>% slice(1)
+    } else if (grepl("Défenseur", poste) || grepl("DF", poste)) {
+      stats_radar <- c("Tacles" = "Tkl", "Intercep." = "Int", "Dégagements" = "Clr", "Contres" = "Blocks", "Passes R." = "Cmp")
+      titre <- "Profil Défensif"
       
-      poste <- infos$Pos 
+    } else if (grepl("Gardien", poste) || grepl("GK", poste)) {
+      stats_radar <- c("Arrêts" = "Saves", "% Arrêts" = "Save.", "Clean Sheets" = "CS", "Passes R." = "Cmp", "Temps Jeu" = "Min")
+      titre <- "Profil Gardien"
       
-      # 3. SÉLECTION DES STATS SELON LE POSTE
-      if (grepl("Attaquant", poste) || grepl("FW", poste)) {
-        stats_radar <- c("Buts" = "Gls", "Passes D." = "Ast", "xG" = "xG", "Tirs" = "Sh", "Tirs Cadrés" = "SoT")
-        titre <- "Profil Offensif"
-        
-      } else if (grepl("Milieu", poste) || grepl("MF", poste)) {
-        stats_radar <- c("Passes R." = "Cmp", "Passes Prg." = "PrgP", "Passes D." = "Ast", "Courses Prg." = "PrgC", "Tacles" = "Tkl")
-        titre <- "Profil Création / Relais"
-        
-      } else if (grepl("Défenseur", poste) || grepl("DF", poste)) {
-        stats_radar <- c("Tacles" = "Tkl", "Intercep." = "Int", "Dégagements" = "Clr", "Contres" = "Blocks", "Passes R." = "Cmp")
-        titre <- "Profil Défensif"
-        
-      } else if (grepl("Gardien", poste) || grepl("GK", poste)) {
-        stats_radar <- c("Arrêts" = "Saves", "% Arrêts" = "Save.", "Clean Sheets" = "CS", "Passes R." = "Cmp", "Temps Jeu" = "Min")
-        titre <- "Profil Gardien"
-        
-      } else {
-        stats_radar <- c("Buts" = "Gls", "Passes D." = "Ast", "Passes R." = "Cmp", "Tacles" = "Tkl", "Temps Jeu" = "Min") 
-        titre <- "Profil Général"
-      }
+    } else {
+      stats_radar <- c("Buts" = "Gls", "Passes D." = "Ast", "Passes R." = "Cmp", "Tacles" = "Tkl", "Temps Jeu" = "Min") 
+      titre <- "Profil Général"
+    }
+    
+    # Couleurs fixes pour correspondre aux bordures des photos !
+    couleur_j1 <- "#2C3E50" # Bleu foncé
+    couleur_j2 <- "#e74c3c" # Rouge
+    
+    # 4. CALCULS POUR LE JOUEUR 1
+    valeurs_j1 <- sapply(stats_radar, function(col) {
+      val <- infos[[col]]
+      max_val <- max(df[[col]], na.rm = TRUE)
+      if (is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
+    })
+    
+    # 5. CRÉATION DU GRAPHIQUE DE BASE (Calque 1)
+    p <- plot_ly(
+      type = 'scatterpolar',
+      r = c(valeurs_j1, valeurs_j1[1]), 
+      theta = c(names(stats_radar), names(stats_radar)[1]),
+      fill = 'toself',
+      name = infos_j1$name,
+      line = list(color = couleur_j1),
+      fillcolor = 'rgba(31, 119, 180, 0.4)' # Bleu transparent
+    )
+    
+    # 5. Ajout du Joueur 2 si activé
+    if (input$activer_comp && !is.null(input$joueur2) && input$joueur2 != "") {
+      infos_j2 <- df %>% filter(name == input$joueur2) %>% slice(1)
       
-      # Couleurs fixes pour correspondre aux bordures des photos !
-      couleur_j1 <- "#2C3E50" # Bleu foncé
-      couleur_j2 <- "#e74c3c" # Rouge
-      
-      # 4. CALCULS POUR LE JOUEUR 1
-      valeurs_j1 <- sapply(stats_radar, function(col) {
-        val <- infos[[col]]
-        max_val <- max(datalarge[[col]], na.rm = TRUE)
-        if (is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
+      valeurs_j2 <- sapply(stats_radar, function(col) {
+        val <- infos_j2[[col]]
+        max_val <- max(df[[col]], na.rm = TRUE)
+        if (is.na(val) || is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
       })
       
-      # 5. CRÉATION DU GRAPHIQUE DE BASE (Calque 1)
-      p <- plot_ly(
-        type = 'scatterpolar',
-        r = c(valeurs_j1, valeurs_j1[1]), 
-        theta = c(names(stats_radar), names(stats_radar)[1]),
+      p <- p %>% add_trace(
+        r = c(valeurs_j2, valeurs_j2[1]),
+        theta = c(names(stats_radar), names(stats_radar)[1]), # Mêmes noms d'axes !
         fill = 'toself',
-        name = infos_j1$name,
-        line = list(color = couleur_j1),
-        fillcolor = 'rgba(31, 119, 180, 0.4)' # Bleu transparent
+        name = infos_j2$name,
+        line = list(color = couleur_j2),
+        fillcolor = 'rgba(214, 39, 40, 0.4)' # Rouge transparent
       )
-      
-      # 5. Ajout du Joueur 2 si activé
-      if (input$activer_comp && !is.null(input$joueur2) && input$joueur2 != "") {
-        infos_j2 <- datalarge %>% filter(name == input$joueur2) %>% slice(1)
-        
-        valeurs_j2 <- sapply(stats_radar, function(col) {
-          val <- infos_j2[[col]]
-          max_val <- max(datalarge[[col]], na.rm = TRUE)
-          if (is.na(val) || is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
-        })
-        
-        p <- p %>% add_trace(
-          r = c(valeurs_j2, valeurs_j2[1]),
-          theta = c(names(stats_radar), names(stats_radar)[1]), # Mêmes noms d'axes !
-          fill = 'toself',
-          name = infos_j2$name,
-          line = list(color = couleur_j2),
-          fillcolor = 'rgba(214, 39, 40, 0.4)' # Rouge transparent
+    }
+    
+    # 6. Mise en forme (Layout)
+    p <- p %>% layout(
+      polar = list(
+        radialaxis = list(
+          visible = TRUE,
+          range = c(0, 1),
+          showticklabels = FALSE
         )
-      }
-      
-      # 6. Mise en forme (Layout)
-      p <- p %>% layout(
-        polar = list(
-          radialaxis = list(
-            visible = TRUE,
-            range = c(0, 1),
-            showticklabels = FALSE
-          )
-        ),
-        title = list(text = paste("<b>", titre, "</b>"), x = 0.5),
-        showlegend = TRUE,
-        margin = list(t = 80)
-      )
-      
-      p
-    })
+      ),
+      title = list(text = paste("<b>", titre, "</b>"), x = 0.5),
+      showlegend = TRUE,
+      margin = list(t = 80)
+    )
+    
+    p
+  })
   
   # --- NUAGE DE POINTS (SCATTER) ---
   output$choix_vars_scatter <- renderUI({
@@ -547,16 +547,77 @@ output$radar_chart <- renderPlotly({
     ggplotly(p, tooltip = "text") %>% hide_legend() %>% layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor  = 'rgba(0,0,0,0)', hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white")))
   })
   
-  output$plot_age_value <- renderPlot({
+  output$plot_global_final <- renderPlotly({
     df_f <- data_filtered()
-    if(nrow(df_f) == 0) return(NULL)
+    validate(need(nrow(df_f) > 1, "Pas assez de données."))
     
-    ggplot(df_f, aes(x = age_class, y = value / 1e6, fill = age_class)) +
-      geom_boxplot(outlier.colour = "red", outlier.alpha = 0.6) +
-      scale_fill_brewer(palette = "Blues") +
-      labs(title = "Valeur Marchande selon la Tranche d'Âge", subtitle = "Cycle de vie économique d'un joueur", x = "Tranche d'âge", y = "Valeur Marchande (en Millions d'€)", fill = "Âge") +
+    fmt_num <- function(x) format(round(x), big.mark = " ", scientific = FALSE)
+    
+    creer_classes_auto <- function(df, col_name, label_nom) {
+      vec <- df[[col_name]]
+      nb_uniques <- length(unique(vec))
+      nb_groupes <- min(4, nb_uniques)
+      
+      if(nb_groupes < 2) return(factor(rep("Groupe Unique", nrow(df))))
+      
+      seuils <- round(unique(quantile(vec, probs = seq(0, 1, length.out = nb_groupes + 1), na.rm = TRUE)))
+      classes <- cut(vec, breaks = seuils, include.lowest = TRUE)
+      
+      n_table <- table(classes)
+      levels_old <- levels(classes)
+      
+      new_labels <- sapply(levels_old, function(lvl) {
+        count <- n_table[lvl]
+        nums_str <- gsub("\\[|\\]|\\(|\\)", "", lvl)
+        nums <- as.numeric(unlist(strsplit(nums_str, ",")))
+        
+        if(length(nums) < 2) return(paste0(lvl, "\n(n=", count, ")"))
+        if(grepl("Prix", label_nom)) {
+          v1 <- format(nums[1]/1e6, scientific = FALSE, drop0trailing = TRUE)
+          v2 <- format(nums[2]/1e6, scientific = FALSE, drop0trailing = TRUE)
+          range_clean <- paste0(v1, " à ", v2, " M€")
+        } else {
+          v1 <- format(round(nums[1]), big.mark = " ", scientific = FALSE)
+          v2 <- format(round(nums[2]), big.mark = " ", scientific = FALSE)
+          range_clean <- paste0(v1, " à ", v2)
+        }
+        paste0(label_nom, ":\n", range_clean, "\n(n=", count, ")")
+      })
+      factor(classes, levels = levels_old, labels = new_labels)
+    }
+    if (input$global_group == "tranche_age") {
+      df_f$group_var <- creer_classes_auto(df_f, "Age", "Âges")
+      
+    } else if (input$global_group == "Squad") {
+      df_f$group_var <- as.factor(df_f$Squad)
+      counts <- table(df_f$group_var)
+      levels(df_f$group_var) <- paste0(levels(df_f$group_var), "\n(n=", counts[levels(df_f$group_var)], ")")
+      
+    } else if (input$global_group == "cat_ga") {
+      df_f$group_var <- creer_classes_auto(df_f, "G.A", "Buts + Passes")
+      
+    } else if (input$global_group == "cat_val") {
+      df_f$group_var <- creer_classes_auto(df_f, "value", "Prix")
+      
+    } else if (input$global_group == "cat_min") {
+      df_f$group_var <- creer_classes_auto(df_f, "Min", "Minutes")
+      
+    } else {
+      df_f$group_var <- factor(rep(paste0("Sélection actuelle\n(n=", nrow(df_f), ")"), nrow(df_f)))
+    }
+    
+    noms_y <- c("value" = "Valeur Marchande (€)", "G.A" = "Buts + Passes Décisives", 
+                "xG.xAG" = "Actions attendues (xG+xAG)", "Min" = "Minutes jouées")
+    
+    p <- ggplot(df_f, aes(x = group_var, y = .data[[input$global_y]], fill = group_var, text = name)) +
+      geom_boxplot(alpha = 0.7, outlier.colour = "red") +
+      geom_jitter(width = 0.2, alpha = 0.4, size = 1.2) +
+      labs(x = "", y = noms_y[input$global_y]) +
+      scale_y_continuous(labels = function(x) format(x, big.mark = " ", scientific = FALSE)) +
       theme_minimal() +
-      theme(plot.title = element_text(face = "bold", hjust = 0.5), legend.position = "none")
+      theme(legend.position = "none", axis.text.x = element_text(size = 9))
+    
+    ggplotly(p, tooltip = "text")
   })
   
   output$table_data <- renderDT({
@@ -565,7 +626,7 @@ output$radar_chart <- renderPlotly({
       datatable(
         options = list(pageLength = 10, scrollX = TRUE),
         rownames = FALSE,
-        colnames = c("Joueur", "Âge", "Poste", "Équipe", "Minutes", "G+A", "xG+xAG", "Tacles/Int", "Valeur (€)")
+        colnames = c("Joueur", "Âge", "Poste", "Équipe", "Minutes", "Buts + Passes décisives","Actions attendues (xG+xAG)", "Tacles + Interceptions", "Valeur (€)")
       ) %>%
       formatCurrency("value", currency = "€", interval = 3, mark = " ", digits = 0)
   })
