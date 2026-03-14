@@ -1,0 +1,45 @@
+Groupe de 3
+Rendre une application Shiny sur un sujet de notre choix
+Des données qui s’y prête 
+Pertinence de nos rendus (reflexion sur la manière de présenter les choses)
+Et faire en sorte que tout se lance
+Il faudra deployer l’appli sur le web et mettre l’url
+Et écrire un document markdown (3-4 pages) descriptif de l’application, ou on a récupérer, rapport, problématique, ce qu’on a voulu faire et réussi a faire
+
+Ça s’axe en trois point
+Document quarto (Important) lu en 2-3 minutes
+-> définir les problématique
+-> les données
+-> Un descriptif de l’appli
+Il doit commencer par nom/prénom + lien vers l’URL (déployer l’app)
+
+*Application => Visualisation (en terme d’utilité et réponse à la problématique)
+-> Choix de l’emplacement / Choix / Clarté
+-> Présentation / Disposition / Note de lecture
+-> Méthode => Regression / ACP / Clustering (en lien avec le sujet que si c’est utile)
+Mettre des titres informatifs
+
+*Code (IA bien approprié) 
+-> Structure du code et du répertoire de rendus (UI et SERVER de la taille la plus courte possible)
+Bien indenté, bien présenté, éventuellement quelques commentaires 
+
+Faut que ça fonctionne sur toutes les machines (-3 points si message d’erreur et que ça marcher pas)
+
+
+Trouver une problématique 
+On part sur la description des caractéristique footballiste de chaque joueurs. Surement faire une comparaison des performances.
+
+
+Visualisation possibles donnée ligue 1 2024/2025
+Comparaison de deux joueurs sur plusieurs dimensions (Vitesse, passes, tir, physique, défense)
+
+Efficacité des tirs (comparaison des tirs cadrés avec les buts) -> Pour les attaquants
+
+Eventuellement un Clustering pour comparé les joueurs en fonction de leurs styles de jeux et non pas de leurs postes
+
+Dimension business : Performance vs prix analyse de la rentabilité : Un nuage de points (Scatter Plot) avec la performance (ex: buts ou passes D) en abscisse (x) et la valeur marchande en ordonnée (y).
+
+Comparaison a prix égal : L'utilisateur choisit un joueur vedette (ex: Mbappé, 180M€). L'application propose 3 joueurs qui ont le même profil statistique mais qui coûtent moins de 50M€.
+
+
+
