@@ -6,8 +6,10 @@ library(plotly)
 library(DT)
 library(scales)
 
-# 1. CHARGEMENT DES DONNÉES (au démarrage du serveur)
-df <- read.csv("data/dataset_stat_large.csv", stringsAsFactors = FALSE)
+# CHARGEMENT DES DONNÉES 
+df <- read.csv("dataset_stat_large.csv", stringsAsFactors = FALSE)
+
+#Modification des données
 df$age_class <- cut(df$Age, 4)
 
 df <- df %>%
@@ -19,48 +21,55 @@ df <- df %>%
     TRUE ~ Pos 
   ))
 
+df$value2 <- format(df$value, scientific = FALSE)
+
 df <- df %>%
   mutate(foot = case_when(
     foot == "right" ~ "Droit",
     foot == "left" ~ "Gauche",
-    TRUE ~ foot # SÉCURITÉ : Garde la valeur d'origine si ce n'est ni right ni left (ex: "both" ou NA)
+    TRUE ~ foot 
   ))
 
+# Server
 function(input, output, session) {
   
+  #BARRE LATÉRALE
   observeEvent(input$mes_onglets, {
     if (input$mes_onglets == "onglet_contexte") {
-      # Rétracte (ferme) la sidebar sur la page Contexte
       toggle_sidebar(id = "ma_sidebar", open = FALSE)
     } else {
       toggle_sidebar(id = "ma_sidebar", open = TRUE)
     }
   })
   
-  # 2. MISE À JOUR DYNAMIQUE DES FILTRES DE BASE
+  # Menus déroulants présent dans la sidebar 
   observe({
     updateSelectInput(session, "squad", choices = c("Toutes", sort(unique(df$Squad))))
-    
-    updateSelectizeInput(session, "position", choices = unique(df$Poste_FR), selected = unique(df$Poste_FR))
-    
+    updateSelectizeInput(session, "position", choices = c("Tous", unique(df$Poste_FR)), selected = "Tous" )
     updateSliderInput(session, "min_minutes", max = max(df$Min, na.rm = TRUE))
   })
   
+  #Création d'un data frame filtré en fonction des éléments choisis dans les menus de la barre latérale
   data_filtered <- reactive({
     req(input$position, input$squad) 
     
-    data <- df %>%
-      filter(Poste_FR %in% input$position) %>%
-      filter(Min >= input$min_minutes) 
+    # filtre minutes
+    data <- df %>% filter(Min >= input$min_minutes)
     
+    # filtre équipe
     if (input$squad != "Toutes") {
       data <- data %>% filter(Squad == input$squad)
+    }
+    
+    # filtre poste
+    if (input$position != "Tous") {
+      data <- data %>% filter(Poste_FR == input$position) 
     }
     
     return(data)
   })
   
-  # 3. CRÉATION DES DATASETS RÉACTIFS
+  # Récupération des données lié à un joueur selectionné
   data_j1 <- reactive({
     req(input$joueur1)
     df |> filter(name == input$joueur1) |> slice(1) 
@@ -68,35 +77,38 @@ function(input, output, session) {
   
   # MISE À JOUR DU MENU DU JOUEUR 1
   observe({
-    # CORRECTION 3 : On va chercher les noms dans data_filtered() et non plus dans df !
+    # On récupère les données filtrées selon l'équipe, le poste et les minutes
     df_f <- data_filtered()
     
-    # Sécurité au cas où le tableau serait vide à cause des filtres
-    if (nrow(df_f) == 0) {
+    # On récupère la liste des noms valides, s'il n'y en a pas, alors ça n'affiche rien
+    if (is.null(df_f) || nrow(df_f) == 0) {
       noms_finale <- character(0)
     } else {
       noms_finale <- sort(unique(df_f$name))
     }
     
+    # On mémorise le joueur actuel pour ne pas l'effacer si on bouge le curseur des minutes
+    joueur_actuel <- isolate(input$joueur1) 
+    
+    #On regarde si après avoir modifié des paramètres, certains joueurs peuvent encore correspondrent au caractéristiques
+    selection <- if (!is.null(joueur_actuel) && joueur_actuel %in% noms_finale) {
+      joueur_actuel
+    } else {
+      ""
+    }
+    
+    # création du menu déroualant avec tous les joueurs correspondant 
     updateSelectizeInput(
       session = session,
       inputId = "joueur1",
       choices = c("Choisir un joueur" = "", noms_finale),
+      selected = selection,
       server = TRUE
     )
   })
-
   
   
-  # =========================================================================
-  # TOUS LES OUTPUTS (DÉSORMAIS BIEN SORTIS DE L'OBSERVE)
-  # =========================================================================
-  
-  # --- MENUS DE COMPARAISON ---
-  # Choix du filtre équipe que'on va appliquer appliquer au joueur 2 (si comparaison activée)
-  # --- MENUS DE COMPARAISON ---
-  
-  # 1. MENU : Choix de l'équipe du Joueur 2
+  # On refait une selection de joueur qui sera utile dans le cadre de la comparaison 
   output$choix_equipe_j2 <- renderUI({
     req(input$activer_comp)
     req(input$joueur1)
@@ -106,18 +118,15 @@ function(input, output, session) {
   
   # 2. MENU : Choix du nom du Joueur 2 (FILTRÉ PAR L'ÉQUIPE !)
   output$select_joueur2 <- renderUI({
-    # On attend que le joueur 1 ET l'équipe 2 soient bien chargés
     req(input$activer_comp, input$joueur1, input$squad_j2) 
     
-    # On récupère le poste du J1 (en français)
-    poste_j1 <- df %>% filter(name == input$joueur1) %>% pull(Poste_FR) %>% first()
+        poste_j1 <- df %>% filter(name == input$joueur1) %>% pull(Poste_FR) %>% first()
     
     # On garde les joueurs du même poste, mais on enlève le Joueur 1 de la liste
     df_comp <- df %>% 
       filter(Poste_FR == poste_j1) %>% 
       filter(name != input$joueur1)
     
-    # LE FILTRE MAGIQUE : Si on a choisi une équipe spécifique, on filtre le tableau !
     if (input$squad_j2 != "Toutes") {
       df_comp <- df_comp %>% filter(Squad == input$squad_j2)
     }
@@ -125,7 +134,6 @@ function(input, output, session) {
     # On extrait les noms restants
     joueurs_comp <- df_comp %>% pull(name) %>% unique() %>% sort()
     
-    # On crée le menu déroulant
     selectizeInput(
       inputId = "joueur2", 
       label = paste("Nom du joueur (", poste_j1, ") :"), 
@@ -134,7 +142,7 @@ function(input, output, session) {
     )
   })
   
-  # --- PROFILS DES JOUEURS ---
+  # Affichage du profil d'un joueur (utilisé dans l'onglet comparaison)
   output$profil_joueur1 <- renderUI({
     req(input$joueur1)
     infos <- df %>% filter(name == input$joueur1) %>% slice(1)
@@ -150,12 +158,13 @@ function(input, output, session) {
         column(2, p(strong("Âge : "), infos$Age, " ans")),
         column(2, p(strong("Taille : "), infos$height, " cm")),
         column(3, p(strong("Pied fort : "), infos$foot)),
-        column(2, p(strong("Valeur : "), paste0(infos$value , " €"))),
+        column(2, p(strong("Valeur : "), paste0(infos$value2 , " €"))),
         column(3, p(strong("Fin contrat : "), infos$contract_expires))
       )
     )
   })
   
+  # Affichage du profil d'un deuxième joueur (utilisé dans l'onglet comparaison)
   output$profil_joueur2 <- renderUI({
     req(input$activer_comp, input$joueur2)
     infos_j2 <- df %>% filter(name == input$joueur2) %>% slice(1)
@@ -171,19 +180,19 @@ function(input, output, session) {
         column(2, p(strong("Âge : "), infos_j2$Age, " ans")),
         column(2, p(strong("Taille : "), infos_j2$height, " cm")),
         column(3, p(strong("Pied fort : "), infos_j2$foot)),
-        column(2, p(strong("Valeur : "), paste0(infos_j2$value, " €"))),
+        column(2, p(strong("Valeur : "), paste0(infos_j2$value2, " €"))),
         column(3, p(strong("Fin contrat : "), infos_j2$contract_expires))
       )
     )
   })
   
-  # --- MISE EN PAGE DES CARTES ---
+  # Mise en page de l'onglet stat individuelle et comparaison
   output$layout_profils <- renderUI({
     req(input$joueur1) 
     if (input$activer_comp) {
       card(
         class = "shadow-sm mb-4 border-top border-dark border-3",
-        card_header("👤 Fiches d'identité", class = "bg-primary text-dark"),
+        card_header("Fiches d'identité", class = "bg-primary text-dark"),
         card_body(
           fluidRow(
             column(width = 6, class = "border-end", uiOutput("profil_joueur1")),
@@ -194,7 +203,7 @@ function(input, output, session) {
     } else {
       card(
         class = "shadow-sm mb-4 border-top border-dark border-3",
-        card_header("👤 Fiche d'identité", class = "bg-primary text-dark"),
+        card_header("Fiche d'identité", class = "bg-primary text-dark"),
         card_body(
           fluidRow(
             column(width = 12, uiOutput("profil_joueur1"))
@@ -203,14 +212,13 @@ function(input, output, session) {
       )
     }
   })
-  
-  # --- STATS DE LA SAISON ---
-  output$stats_saison_j1 <- renderUI({
+
+    output$stats_saison_j1 <- renderUI({
     req(input$joueur1)
     infos <- df %>% filter(name == input$joueur1) %>% slice(1)
     card(
       class = "shadow-sm mb-3", 
-      card_header("📊 Bilan de la saison", class = "bg-primary text-dark"),
+      card_header("Bilan de la saison", class = "bg-primary text-dark"),
       card_body(
         fluidRow(
           column(4, class = "text-center", p("Matchs joués", class = "text-muted mb-1"), h4(infos$MP, class = "text-primary fw-bold mb-0")),
@@ -228,7 +236,7 @@ function(input, output, session) {
     
     card(
       class = "shadow-sm mb-3", 
-      card_header("📊 Bilan de la saison", class = "bg-primary text-dark"),
+      card_header("Bilan de la saison", class = "bg-primary text-dark"),
       card_body(
         fluidRow(
           column(4, class = "text-center", p("Matchs joués", class = "text-muted mb-1 small"), h4(infos_j2$MP, class = "text-danger fw-bold mb-0")),
@@ -241,7 +249,7 @@ function(input, output, session) {
   
   output$layout_stats <- renderUI({
     validate(
-      need(input$joueur1 != "", "Veuillez sélectionner un joueur dans le menu de gauche pour afficher cette analyse. ⚽")
+      need(input$joueur1 != "", "Veuillez sélectionner un joueur dans le menu de gauche pour afficher cette analyse.")
     )
     req(input$joueur1)
     if (input$activer_comp) {
@@ -256,77 +264,97 @@ function(input, output, session) {
     }
   })
   
-  # --- GRAPHIQUE RADAR ---
-  output$radar_chart <- renderPlotly({
-    req(input$joueur1)
-    infos <- df %>% filter(name == input$joueur1) %>% slice(1)
-    poste <- infos$Poste_FR 
-    
-    if (grepl("Attaquant", poste) || grepl("FW", poste)) {
-      stats_radar <- c("Gls", "Ast", "xG", "Sh", "SoT")
-      titre <- "Comparaison Offensive"
-    } else if (grepl("Milieu", poste) || grepl("MF", poste)) {
-      stats_radar <- c("Cmp", "PrgP", "Ast", "PrgC", "Tkl")
-      titre <- "Comparaison Création / Relais"
-    } else if (grepl("Défenseur", poste) || grepl("DF", poste)) {
-      stats_radar <- c("Tkl", "Int", "Clr", "Blocks", "Cmp")
-      titre <- "Comparaison Défensive"
-    } else if (grepl("Gardien", poste) || grepl("GK", poste)) {
-      stats_radar <- c("Saves", "Save.", "CS", "Cmp", "Min")
-      titre <- "Comparaison Gardiens"
-    } else {
-      stats_radar <- c("Gls", "Ast", "Cmp", "Tkl", "Min") 
-      titre <- "Comparaison Générale"
-    }
-    
-    couleur_j1 <- "#2C3E50" 
-    couleur_j2 <- "#e74c3c" 
-    
-    valeurs_j1 <- sapply(stats_radar, function(col) {
-      val <- infos[[col]]
-      max_val <- max(df[[col]], na.rm = TRUE)
-      if (is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
-    })
-    
-    p <- plot_ly(
-      type = 'scatterpolar',
-      r = c(valeurs_j1, valeurs_j1[1]), 
-      theta = c(stats_radar, stats_radar[1]),
-      fill = 'toself',
-      name = infos$name,
-      line = list(color = couleur_j1),
-      fillcolor = paste0(couleur_j1, "40")
-    )
-    
-    if (input$activer_comp && !is.null(input$joueur2) && input$joueur2 != "") {
-      infos_j2 <- df %>% filter(name == input$joueur2) %>% slice(1)
-      valeurs_j2 <- sapply(stats_radar, function(col) {
-        val <- infos_j2[[col]]
+  # Graphique toile d'areigné
+output$radar_chart <- renderPlotly({
+      
+      req(input$joueur1)
+      
+      infos_j1 <- df %>% filter(name == input$joueur1) %>% slice(1)
+      infos <- df %>% filter(name == input$joueur1) %>% slice(1)
+      
+      poste <- infos$Pos 
+      
+      # Selection des statistiques utilisés pour le grazphique en fonction du poste
+      if (grepl("Attaquant", poste) || grepl("FW", poste)) {
+        stats_radar <- c("Buts" = "Gls", "Passes D." = "Ast", "xG" = "xG", "Tirs" = "Sh", "Tirs Cadrés" = "SoT")
+        titre <- "Profil Offensif"
+        
+      } else if (grepl("Milieu", poste) || grepl("MF", poste)) {
+        stats_radar <- c("Passes R." = "Cmp", "Passes Prg." = "PrgP", "Passes D." = "Ast", "Courses Prg." = "PrgC", "Tacles" = "Tkl")
+        titre <- "Profil Création / Relais"
+        
+      } else if (grepl("Défenseur", poste) || grepl("DF", poste)) {
+        stats_radar <- c("Tacles" = "Tkl", "Intercep." = "Int", "Dégagements" = "Clr", "Contres" = "Blocks", "Passes R." = "Cmp")
+        titre <- "Profil Défensif"
+        
+      } else if (grepl("Gardien", poste) || grepl("GK", poste)) {
+        stats_radar <- c("Arrêts" = "Saves", "% Arrêts" = "Save.", "Clean Sheets" = "CS", "Passes R." = "Cmp", "Temps Jeu" = "Min")
+        titre <- "Profil Gardien"
+        
+      } else {
+        stats_radar <- c("Buts" = "Gls", "Passes D." = "Ast", "Passes R." = "Cmp", "Tacles" = "Tkl", "Temps Jeu" = "Min") 
+        titre <- "Profil Général"
+      }
+      
+      couleur_j1 <- "#2C3E50" 
+      couleur_j2 <- "#e74c3c" 
+      
+      # 4. CALCULS POUR LE JOUEUR 1
+      valeurs_j1 <- sapply(stats_radar, function(col) {
+        val <- infos[[col]]
         max_val <- max(df[[col]], na.rm = TRUE)
         if (is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
       })
       
-      p <- p %>% add_trace(
-        r = c(valeurs_j2, valeurs_j2[1]),
-        theta = c(stats_radar, stats_radar[1]),
+      # Graphique avec un seul joueur
+      p <- plot_ly(
+        type = 'scatterpolar',
+        r = c(valeurs_j1, valeurs_j1[1]), 
+        theta = c(names(stats_radar), names(stats_radar)[1]),
         fill = 'toself',
-        name = infos_j2$name,
-        line = list(color = couleur_j2),
-        fillcolor = paste0(couleur_j2, "40") 
+        name = infos_j1$name,
+        line = list(color = couleur_j1),
+        fillcolor = 'rgba(31, 119, 180, 0.4)' # Bleu transparent
       )
-    }
-    
-    p %>% layout(
-      title = list(text = paste("<b>", titre, "</b>"), x = 0.5),
-      polar = list(
-        radialaxis = list(visible = TRUE, range = c(0, 1), showticklabels = FALSE)
-      ),
-      showlegend = TRUE, 
-      margin = list(t = 50)
-    )
-  })
+      
+      # si le deuxième joueur est activé
+      if (input$activer_comp && !is.null(input$joueur2) && input$joueur2 != "") {
+        infos_j2 <- df %>% filter(name == input$joueur2) %>% slice(1)
+        
+        valeurs_j2 <- sapply(stats_radar, function(col) {
+          val <- infos_j2[[col]]
+          max_val <- max(df[[col]], na.rm = TRUE)
+          if (is.na(val) || is.na(max_val) || max_val == 0) return(0) else return(val / max_val)
+        })
+        
+        p <- p %>% add_trace(
+          r = c(valeurs_j2, valeurs_j2[1]),
+          theta = c(names(stats_radar), names(stats_radar)[1]),
+          fill = 'toself',
+          name = infos_j2$name,
+          line = list(color = couleur_j2),
+          fillcolor = 'rgba(214, 39, 40, 0.4)' 
+        )
+      }
+      
+      # 6. Mise en forme 
+      p <- p %>% layout(
+        polar = list(
+          radialaxis = list(
+            visible = TRUE,
+            range = c(0, 1),
+            showticklabels = FALSE
+          )
+        ),
+        title = list(text = paste("<b>", titre, "</b>"), x = 0.5),
+        showlegend = TRUE,
+        margin = list(t = 80)
+      )
+      
+      p
+    })
   
-  # --- NUAGE DE POINTS (SCATTER) ---
+  # Deuxième grpahique de l'ongelt comparaison et stat individuelle
   output$choix_vars_scatter <- renderUI({
     req(input$joueur1)
     poste <- df %>% filter(name == input$joueur1) %>% pull(Poste_FR) %>% first()
@@ -338,14 +366,14 @@ function(input, output, session) {
     } else if (grepl("Défenseur", poste) || grepl("DF", poste)) {
       choix <- c("Tacles" = "Tkl", "Interceptions" = "Int", "Dégagements" = "Clr", "Contres" = "Blocks", "Minutes" = "minutes")
     } else if (grepl("Gardien", poste) || grepl("GK", poste)) {
-      choix <- c("Arrêts" = "arrets", "% Arrêts" = "pct_arrets", "Clean Sheets" = "clean_sheets", "Buts encaissés" = "buts_encaisses", "Minutes" = "minutes")
+      choix <- c("Arrêts" = "Saves", "% Arrêts" = "Save.", "Clean Sheets" = "CS", "Buts encaissés" = "GA", "Minutes" = "Min_stats_keeper")
     } else {
       choix <- c("Buts" = "Gls", "Passes" = "Cmp", "Tacles" = "Tkl", "Minutes" = "minutes")
     }
     
     fluidRow(
-      column(6, selectInput("var_x", "📊 Statistique en bas (Axe Horizontal) :", choices = choix, selected = choix[1])),
-      column(6, selectInput("var_y", "📈 Statistique à gauche (Axe Vertical) :", choices = choix, selected = choix[2]))
+      column(6, selectInput("var_x", "Statistique en bas (Axe Horizontal) :", choices = choix, selected = choix[1])),
+      column(6, selectInput("var_y", "Statistique à gauche (Axe Vertical) :", choices = choix, selected = choix[2]))
     )
   })
   
@@ -397,7 +425,7 @@ function(input, output, session) {
     )
   })
   
-  # --- INDICATEURS (KPIs) ---
+  # PRÉPATION DES GRPAHIQUES UTILISÉS DANS L'ONGLET DETECTION DE POTENTIELS
   output$val_joueurs <- renderText({ nrow(data_filtered()) })
   
   output$val_meilleur_ga <- renderText({
@@ -431,7 +459,9 @@ function(input, output, session) {
     tags$img(src = url_image, style = "max-height: 100px; width: auto; border-radius: 20px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.2);")
   })
   
-  # --- GRAPHIQUES GLOBAUX ---
+  # GRAPHIQUES GLOBAUX 
+  
+  # Graphique 1 avec commentaire 
   output$plot_efficiency <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
@@ -464,6 +494,7 @@ function(input, output, session) {
     HTML(texte_html) 
   })
   
+  #Graphique 2 Valeurs marchandes en fonction du poste
   output$plot_value <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
@@ -481,6 +512,7 @@ function(input, output, session) {
     ggplotly(p, tooltip = "text") %>% layout(legend = list(orientation = "h", x = 0, y = -0.2), paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor  = 'rgba(0,0,0,0)', hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white")))
   })
   
+  #Graphique 3 Temps de jeu
   output$plot_timeplay <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
@@ -498,6 +530,7 @@ function(input, output, session) {
     ggplotly(p, tooltip = "text") %>% layout(legend = list(orientation = "h", x = 0, y = -0.2), paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor  = 'rgba(0,0,0,0)', hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white")))
   })
   
+  #Graphique 4 avec les nations présentes dans une équipe
   output$plot_nationalities <- renderPlotly({
     df_f <- data_filtered()
     if(nrow(df_f) == 0 || !"Nation" %in% names(df_f)) return(NULL)
@@ -514,6 +547,7 @@ function(input, output, session) {
     ggplotly(p, tooltip = "text") %>% hide_legend() %>% layout(paper_bgcolor = 'rgba(0,0,0,0)', plot_bgcolor  = 'rgba(0,0,0,0)', hoverlabel = list(bgcolor = "#1A2E44", font = list(color = "white")))
   })
   
+  # GRAPHIQUE ANCIENNE VERSION 
   output$plot_age_value <- renderPlot({
     df_f <- data_filtered()
     if(nrow(df_f) == 0) return(NULL)
@@ -526,6 +560,7 @@ function(input, output, session) {
       theme(plot.title = element_text(face = "bold", hjust = 0.5), legend.position = "none")
   })
   
+  #GRAPHIQUE UTILISÉ POUR L'ONGLET EXPLORATEUR DE JOUEUR
   output$table_data <- renderDT({
     data_filtered() %>%
       select(name, Age, Poste_FR, Squad, Min, G.A, xG.xAG, Tkl.Int, value) %>%
@@ -536,4 +571,90 @@ function(input, output, session) {
       ) %>%
       formatCurrency("value", currency = "€", interval = 3, mark = " ", digits = 0)
   })
+  
+  #GRAPHIQUE UTILISÉ DANS L'ANALYSE GLOBALE DU CHAMPIONNATS
+  output$plot_global_final <- renderPlotly({
+    df_f <- data_filtered()
+    validate(need(nrow(df_f) > 1, "Pas assez de données."))
+    
+    fmt_num <- function(x) format(round(x), big.mark = " ", scientific = FALSE)
+    
+    creer_classes_auto <- function(df, col_name, label_nom) {
+      vec <- df[[col_name]]
+      nb_uniques <- length(unique(vec))
+      nb_groupes <- min(4, nb_uniques)
+      
+      if(nb_groupes < 2) return(factor(rep("Groupe Unique", nrow(df))))
+      
+      seuils <- round(unique(quantile(vec, probs = seq(0, 1, length.out = nb_groupes + 1), na.rm = TRUE)))
+      classes <- cut(vec, breaks = seuils, include.lowest = TRUE)
+      
+      n_table <- table(classes)
+      levels_old <- levels(classes)
+      
+      new_labels <- sapply(levels_old, function(lvl) {
+        count <- n_table[lvl]
+        nums_str <- gsub("\\[|\\]|\\(|\\)", "", lvl)
+        nums <- as.numeric(unlist(strsplit(nums_str, ",")))
+        
+        if(length(nums) < 2) return(paste0(lvl, "\n(n=", count, ")"))
+        if(grepl("Prix", label_nom)) {
+          v1 <- format(nums[1]/1e6, scientific = FALSE, drop0trailing = TRUE)
+          v2 <- format(nums[2]/1e6, scientific = FALSE, drop0trailing = TRUE)
+          range_clean <- paste0(v1, " à ", v2, " M€")
+        } else {
+          v1 <- format(round(nums[1]), big.mark = " ", scientific = FALSE)
+          v2 <- format(round(nums[2]), big.mark = " ", scientific = FALSE)
+          range_clean <- paste0(v1, " à ", v2)
+        }
+        paste0(label_nom, ":\n", range_clean, "\n(n=", count, ")")
+      })
+      factor(classes, levels = levels_old, labels = new_labels)
+    }
+    if (input$global_group == "tranche_age") {
+      df_f$group_var <- creer_classes_auto(df_f, "Age", "Âges")
+      
+    } else if (input$global_group == "Squad") {
+      df_f$group_var <- as.factor(df_f$Squad)
+      counts <- table(df_f$group_var)
+      levels(df_f$group_var) <- paste0(levels(df_f$group_var), "\n(n=", counts[levels(df_f$group_var)], ")")
+      
+    } else if (input$global_group == "cat_ga") {
+      df_f$group_var <- creer_classes_auto(df_f, "G.A", "Buts + Passes")
+      
+    } else if (input$global_group == "cat_val") {
+      df_f$group_var <- creer_classes_auto(df_f, "value", "Prix")
+      
+    } else if (input$global_group == "cat_min") {
+      df_f$group_var <- creer_classes_auto(df_f, "Min", "Minutes")
+      
+    } else {
+      df_f$group_var <- factor(rep(paste0("Sélection actuelle\n(n=", nrow(df_f), ")"), nrow(df_f)))
+    }
+    
+    noms_y <- c("value" = "Valeur Marchande (€)", "G.A" = "Buts + Passes Décisives", 
+                "xG.xAG" = "Actions attendues (xG+xAG)", "Min" = "Minutes jouées")
+    
+    p <- ggplot(df_f, aes(x = group_var, y = .data[[input$global_y]], fill = group_var, text = name)) +
+      geom_boxplot(alpha = 0.7, outlier.colour = "red") +
+      geom_jitter(width = 0.2, alpha = 0.4, size = 1.2) +
+      labs(x = "", y = noms_y[input$global_y]) +
+      scale_y_continuous(labels = function(x) format(x, big.mark = " ", scientific = FALSE)) +
+      theme_minimal() +
+      theme(legend.position = "none", axis.text.x = element_text(size = 9))
+    
+    ggplotly(p, tooltip = "text")
+  })
+  
+  output$table_data <- renderDT({
+    data_filtered() %>%
+      select(name, Age, Poste_FR, Squad, Min, G.A, xG.xAG, Tkl.Int, value) %>%
+      datatable(
+        options = list(pageLength = 10, scrollX = TRUE),
+        rownames = FALSE,
+        colnames = c("Joueur", "Âge", "Poste", "Équipe", "Minutes", "Buts + Passes décisives","Actions attendues (xG+xAG)", "Tacles + Interceptions", "Valeur (€)")
+      ) %>%
+      formatCurrency("value", currency = "€", interval = 3, mark = " ", digits = 0)
+  })
 }
+
