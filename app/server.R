@@ -7,7 +7,7 @@ library(DT)
 library(scales)
 
 # chargement des données
-df <- read.csv("dataset_stat_large.csv", stringsAsFactors = FALSE)
+df <- read.csv("data/dataset_stat_large.csv", stringsAsFactors = FALSE)
 
 #Modification des données
 df$age_class <- cut(df$Age, 4)
