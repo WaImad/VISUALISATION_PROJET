@@ -6,7 +6,7 @@ library(plotly)
 library(DT)
 library(scales)
 
-# CHARGEMENT DES DONNÉES 
+# chargement des données
 df <- read.csv("dataset_stat_large.csv", stringsAsFactors = FALSE)
 
 #Modification des données
