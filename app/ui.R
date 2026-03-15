@@ -7,8 +7,9 @@ library(DT)
 
 # Définition du thème ( A modifier si vous voulez)
 theme_ligue1 <- bs_theme(
-  bg = "#07111F",        # Bleu nuit très profond (Fond de l'application)
-  fg = "#F8F9FA",        # Texte en blanc cassé pour une bonne lisibilité
+  bg = "#0a192f",        # Bleu nuit très profond (Fond de l'application)
+  fg = "#F8F9FA", 
+  "navbar-bg" = "#07101f", # Force le bandeau en Bleu Cyan L1 !# Texte en blanc cassé pour une bonne lisibilité
   primary = "#085fff",   # Le fameux Bleu Cyan électrique du nouveau logo L1 !
   secondary = "#085fff", # Bleu marine pour les cartes et bordures
   success = "#00C853",   # Vert vif pour les stats positives
@@ -30,151 +31,77 @@ page_navbar(
     ), 
     "Scouting Dashboard | L1 24-25"
   ),
-  # BARRE LATÉRALE (Filtres)
+  # BARRE LATÉRALE 
   sidebar = sidebar(
-    open = FALSE,
-    width = 300,
+    open = "closed",
+    width = 350,
     id = "ma_sidebar",
     h4("Filtres de selection"),
     selectizeInput("squad", "Équipe :", choices = "Chargement..."),
-    selectizeInput("position", "Poste :", choices = "Chargement...", multiple = TRUE),
+    selectizeInput("position", "Poste :", choices = "Chargement...", multiple = FALSE),
     sliderInput("min_minutes", "Minutes jouées minimum :", min = 0,max = 3500, value = 500),
     
     conditionalPanel(
       condition = "input.mes_onglets == 'onglet_stat'",
+      selectizeInput("joueur1", "Sélectionnez un joueur :", choices = "Chargement..."),
       hr(), 
       h4("Mode Comparaison"),
-      selectizeInput("joueur1", "Sélectionnez un joueur :", choices = "Chargement..."),
       checkboxInput("activer_comp", "Comparer avec un autre joueur", FALSE),
       uiOutput("choix_equipe_j2"), 
       uiOutput("select_joueur2") 
     )
   ),
   
+  #ONGLET 0 QUI EST LA PAGE D'ACCUEIL 
   nav_panel(
-    title = "Contexte & Données",
-    id = "onglet_contexte",
-    icon = bs_icon("info-circle"),
+    title = "Accueil",
     
-    layout_columns(
-      col_widths = 12, # Prend toute la largeur
+    div(
+      class = "text-center",
+      style = "max-width: 1200px; margin: auto; margin-top: 120px;", 
       
-      # Carte 1 : L'introduction
-      card(
-        card_header("⚽ Introduction au Projet", class = "bg-primary text-white"),
-        card_body(
-          p("Bienvenue sur ce tableau de bord interactif dédié à l'analyse des performances des joueurs de Ligue 1 pour la saison 2024-2025."),
-          tags$img(
-            src = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXlpZ2dsZ29hN2M0NXFkaXlnMXNla2VzanRsbnphanFpOG83MTYxbiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/KWvok8lP2noNDRTpXw/giphy.gif", 
-            width = "28%"
-          ),
-          p("L'objectif de cette application est de croiser les statistiques sportives individuelles (temps de jeu, efficacité offensive, solidité défensive) avec la valeur marchande estimée des joueurs. Cet outil permet ainsi d'identifier les profils sur-performants, d'évaluer l'apport réel d'un joueur par rapport à son prix, et de fournir une aide visuelle au recrutement (Scouting).")
-        )
+      h2("La Data et les Statisques au service du Scouting.", 
+         class = "fw-bold mb-2", style = "color: #ffffff;"),
+      
+      p("Explorez, analysez et comparez les performances de plus de 500 joueurs de Ligue 1 pour la saison 2024-2025.", 
+        class = "fw-bold mb-5",style = "color: #ffffff;"),
+      
+      tags$img(
+        src = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXlpZ2dsZ29hN2M0NXFkaXlnMXNla2VzanRsbnphanFpOG83MTYxbiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/KWvok8lP2noNDRTpXw/giphy.gif", 
+        class = "rounded shadow-lg mb-5", 
+        style = "max-width: 550px; width: 100%; border: 1px solid #1A2E44;" 
       ),
       
-      # Carte 2 : Le dictionnaire de données
-      card(
-        card_header("📚 Dictionnaire des Données & Sources", class = "bg-primary text-dark"),
-        card_body(
-          HTML('
-            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-              <table class="table table-hover table-sm align-middle text-light">
-                <thead class="sticky-top bg-dark text-info">
-                  <tr>
-                    <th>Variable</th>
-                    <th>Définition/explication</th>
-                    <th>Type / Unité</th>
-                    <th>Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="table-secondary text-dark"><th colspan="4">ℹ️ Informations de Base</th></tr>
-                  <tr><td><b>Player</b></td><td>Nom complet du joueur</td><td>Texte</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>Nation</b></td><td>Nationalité sportive</td><td>Texte</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Pos</b></td><td>Poste (FW, MF, DF, GK)</td><td>Catégorie</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Squad</b></td><td>Club d\'appartenance</td><td>Texte</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Comp</b></td><td>Championnat (ex: Ligue 1)</td><td>Texte</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Age</b></td><td>Âge du joueur</td><td>Numérique (Années)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Height</b></td><td><b>Taille du joueur</b></td><td>Numérique (centimètres)</td><td>Kaggle (5.7M+ Records)</td></tr>
-                  <tr><td><b>Foot</b></td><td><b>Pied fort du joueur</b></td><td>Texte</td><td>Kaggle (5.7M+ Records)</td></tr>
-                  <tr><td><b>Born</b></td><td>Année de naissance</td><td>Numérique (Année)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Player Agent Name</b></td><td><b>Agent du joueur</b></td><td>Texte</td><td>Kaggle (5.7M+ Records)</td></tr>
-                  <tr><td><b>value</b></td><td><b>Valeur marchande estimée du joueur</b></td><td>Numérique (€)</td><td><a href="https://www.kaggle.com/datasets/xfkzujqjvx97n/football-datasets" target="_blank">Kaggle (5.7M+ Records)</a></td></tr>
-
-                  <tr class="table-secondary text-dark"><th colspan="4">⏱️ Temps de Jeu & Apparitions</th></tr>
-                  <tr><td><b>MP</b></td><td>Matchs joués (Apparitions)</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>Starts</b></td><td>Titularisations (Matchs commencés)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Min</b></td><td>Minutes totales jouées</td><td>Numérique (Minutes)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>90s</b></td><td>Équivalent de matchs entiers joués (Minutes / 90)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-
-                  <tr class="table-secondary text-dark"><th colspan="4">⚔️ Statistiques Offensives</th></tr>
-                  <tr><td><b>Gls</b></td><td>Buts marqués</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a>)</td></tr>
-                  <tr><td><b>Ast</b></td><td>Passes décisives</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>G+A</b></td><td>Somme des Buts et Passes décisives</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>xG</b></td><td>Expected Goals (Probabilité de marquer)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>xAG</b></td><td>Expected Assisted Goals (Probabilité de passe décisive)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>npxG</b></td><td>Expected Goals hors pénaltys</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>G-PK</b></td><td>Buts marqués en excluant les pénaltys</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Sh/90</b></td><td>Nombre de tirs par match</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>SoT/90</b></td><td>Nombre de tirs cadrés par match</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>G/Sh</b></td><td>Nombre de buts par tir (efficacité) </td><td>Numérique (Ration)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  
-
-                  <tr class="table-secondary text-dark"><th colspan="4">🛡️ Statistiques Défensives</th></tr>
-                  <tr><td><b>Tkl</b></td><td>Tacles tentés</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>TklW</b></td><td>Tacles réussis (Possession récupérée)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Blocks</b></td><td>Tirs ou passes bloqués</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Int</b></td><td>Interceptions de passes adverses</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Tkl+Int</b></td><td>Total combiné des tacles et interceptions</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Clr</b></td><td>Dégagements défensifs</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Err</b></td><td>Erreurs directes menant à un tir ou but</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-
-                  <tr class="table-secondary text-dark"><th colspan="4">🎯 Passes & Créativité</th></tr>
-                  <tr><td><b>PrgP</b></td><td>Passes progressives (vers l\'avant)</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>PrgC</b></td><td>Conduites de balle progressives vers l\'avant</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>KP</b></td><td>Passes clés (menant à un tir)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Cmp%_stats_passing</b></td><td>Pourcentage de passes réussies</td><td>Numérique (%)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Ast_stats_passing</b></td><td>Passes décisives (Depuis les stats de passes)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>xA</b></td><td>Expected Assists (Passes décisives attendues)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>PPA</b></td><td>Passes réussies dans la surface de réparation adverse</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-
-                  <tr class="table-secondary text-dark"><th colspan="4">🧤 Statistiques des Gardiens</th></tr>
-                  <tr><td><b>GA</b></td><td>Buts encaissés</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>Saves</b></td><td>Arrêts réalisés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Save%</b></td><td>Pourcentage de tirs arrêtés</td><td>Numérique (%)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>CS</b></td><td>Clean sheets (Matchs sans encaisser)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>CS%</b></td><td>Pourcentage de matchs en Clean sheet</td><td>Numérique (%)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>PKA</b></td><td>Pénaltys subis</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>PKsv</b></td><td>Pénaltys arrêtés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-
-                  <tr class="table-secondary text-dark"><th colspan="4">⚽ Possession & Contrôle de Balle</th></tr>
-                  <tr><td><b>Touches</b></td><td>Nombre total de ballons touchés</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>Carries</b></td><td>Nombre total de conduites de balle</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>PrgR</b></td><td>Courses progressives (Conduites percutantes)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Mis</b></td><td>Mauvais contrôles (Faute technique)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Dis</b></td><td>Pertes de balle (Dépossédé)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-
-                  <tr class="table-secondary text-dark"><th colspan="4">📊 Statistiques Diverses</th></tr>
-                  <tr><td><b>CrdY</b></td><td>Cartons jaunes reçus</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
-                  <tr><td><b>CrdR</b></td><td>Cartons rouges reçus</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>PKwon</b></td><td>Pénaltys obtenus</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>PKcon</b></td><td>Pénaltys concédés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                  <tr><td><b>Recov</b></td><td>Ballons récupérés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
-                
-                </tbody>
-              </table>
-            </div>
-          ')
+      p("L'objectif de cette application est de visualiser les statistiques sportives individuelles de chaques joueurs en fonction de leurs postes. Cet outil vous permettra d'identifier les profils sur-performants et fournira une aide visuelle au recrutement et de déterminer les profils de joueurs les plus intéréssants.", 
+        class = "text-muted mb-5", 
+        style = "font-size: 1.1rem; line-height: 1.6;"),
+      
+      hr(style = "border-color: #1A2E44; margin-bottom: 40px;"), 
+      
+      layout_columns(
+        col_widths = c(4, 4, 4),
+        div(
+          bs_icon("funnel-fill", size = "2.5rem", class = "mb-3", style = "color: #085fff;"),
+          h5("1. Filtrer", class = "fw-bold text-white"),
+          p("Utilisez le menu latéral pour cibler une équipe ou un poste précis.", class = "text-muted small")
+        ),
+        div(
+          bs_icon("graph-up-arrow", size = "2.5rem", class = "mb-3 text-success"),
+          h5("2. Analyser", class = "fw-bold text-white"),
+          p("Repérez les anomalies de marché grâce aux graphiques de performance.", class = "text-muted small")
+        ),
+        div(
+          bs_icon("crosshair", size = "2.5rem", class = "mb-3 text-danger"),
+          h5("3. Comparer", class = "fw-bold text-white"),
+          p("Mettez deux joueurs face à face dans le Radar de performance.", class = "text-muted small")
         )
       )
     )
   ),
-  # --- ONGLET 1 : ANALYSE DES PERFORMANCES ---
+  # ONGLET 1 SUR LA DETECTION DES POTENTIELS
   nav_panel(
-    title = "Analyse des Performances",
+    title = "Detection de Potentiels",
     value = "onglet_perf",
-    
-    
     
     # CONTENU PRINCIPAL
     layout_columns(
@@ -203,44 +130,45 @@ page_navbar(
     layout_columns(
       col_widths = c(6, 6),
       card(
-        card_header("💥 Efficacité : G.A vs Expected (xG.xAG)", class = "bg-primary text-dark"),
+        card_header("Efficacité : G.A vs Expected (xG.xAG)", class = "bg-primary text-dark"),
         plotlyOutput("plot_efficiency", height = "350px"),
         htmlOutput("commentaire_efficiency")
       ),
       
       card(
-        card_header("💵 Top 10 : Valeurs Marchandes", class = "bg-primary text-dark"),
+        card_header("Top 10 : Valeurs Marchandes", class = "bg-primary text-dark"),
         plotlyOutput("plot_value", height = "350px")
       )
     ),
     layout_columns(
       col_widths = c(6,6),
       card(
-        card_header("⏱️ Top 10 : Joueurs les plus utilisés (Temps de jeu)", class = "bg-primary text-dark"),
+        card_header("⏱Top 10 : Joueurs les plus utilisés (Temps de jeu)", class = "bg-primary text-dark"),
         plotlyOutput("plot_timeplay", height = "350px")
       ),
       card(
-        card_header("🌍 Top 10 : Nationalités les plus représentées", class = "bg-primary text-dark"),
+        card_header("Top 10 : Nationalités les plus représentées", class = "bg-primary text-dark"),
         plotlyOutput("plot_nationalities", height = "350px")
       )
     )
   ),
+  
+  #ONGLET 2 SUR L'ANALYSE STATISTIQUE INDIVIDUELLE
   nav_panel(
-    title = "Analyse statistique",
+    title = "Analyse Statistique Individuelle et Comparative",
     value = "onglet_stat",
     
     mainPanel(
       width = 12,
       
-      # --- 1. ZONE DU HAUT : Profils et Bilans ---
+      # STAT DES JOUEURS
       uiOutput("layout_profils",class = "bg-primary text-dark"),
       uiOutput("layout_stats"),
       
       br(),
       
-      # --- 2. GRAPHIQUE 1 : Le Radar  ---
+      # GRAPHIQUE TOILE D'ARAIGNÉ
       conditionalPanel(
-        # La condition est écrite en Javascript : "Si le menu joueur1 n'est pas vide"
         condition = "input.joueur1 != ''",
         card(
           class = "shadow-sm mb-4",
@@ -250,22 +178,66 @@ page_navbar(
           )
         ),
         
-        # --- 3. GRAPHIQUE 2 : Le Nuage de Points  ---
+        # GRAPHIQUE Centiles
         card(
           class = "shadow-sm mb-4",
-          card_header("🎯 Analyse Détaillée", class = "bg-primary text-dark"),
+          card_header("📊 Centiles (Par rapport aux joueurs du même poste)", class = "bg-primary text-dark"),
+          card_body(
+            
+            # 1. La phrase pour aider à lire le graphique
+            htmlOutput("explication_centiles"),
+            br(), # Petit saut de ligne
+            
+            # 2. La zone qui va accueillir 1 ou 2 graphiques (gérée par le serveur)
+            uiOutput("layout_percentiles")
+            
+          )
+        ),
+        
+        #GRAPHIQUE NUAGE DE POINTS
+        card(
+          class = "shadow-sm mb-4",
+          card_header("Analyse Détaillée", class = "bg-primary text-dark"),
           card_body(
             uiOutput("choix_vars_scatter"),
             plotlyOutput("scatter_plot", height = "500px")
           )
         )
       )
-    ) # Fin du mainPanel
-  ), # Fin du nav_panel
+    ) 
+  ), 
   
-  # --- ONGLET 2 : BASE DE DONNÉES ---
+  
+  
+  #ONGLET 4 SUR L'ANALYSE GLOBALE DU CHAMPIONNAT
   nav_panel(
-    title = "Explorateur de Données",
+    title = "Analyse Globale du championnat",
+    value = "onglet_global",
+    card(
+      card_header("Comparaison par Catégories de Performance",class = "bg-primary text-dark"),
+      card_body(
+        fluidRow(
+          column(6, selectInput("global_y", "Statistique à mesurer (Axe Vertical) :", 
+                                choices = c("Valeur Marchande" = "value", 
+                                            "Buts + Passes Décisives" = "G.A", 
+                                            "Actions attendues" = "xG.xAG", 
+                                            "Temps de jeu" = "Min"))),
+          column(6, selectInput("global_group", "Regrouper par (Axe Horizontal) :", 
+                                choices = c("Aucun" = "Aucun",
+                                            "Tranches d'âge" = "tranche_age",
+                                            "Niveau de Buts + Passes" = "cat_ga",
+                                            "Niveau de Valeur (€)" = "cat_val",
+                                            "Niveau de Temps de jeu" = "cat_min",
+                                            "Équipe" = "Squad")))
+        ),
+        plotlyOutput("plot_global_final", height = "550px")
+      )
+    )
+  ),
+  
+  # ONGLET 3 SUR L'EXPLORATION DES STATISTIQUES DES JOUEURS
+  nav_panel(
+    title = "Explorateur de données brutes",
     value = "onglet_data",
     card(
       card_header("Données brutes filtrables"),
@@ -273,12 +245,104 @@ page_navbar(
     )
   ),
   
+  #DERNIER ONGLET QUI PRÉSENTE L'ENSEMBLE DES DONNÉES
   nav_panel(
-    title = "Analyse Globale du championnat",
-    value = "onglet_global",
+    title = "Dictionnaire des données",
+    value = "onglet_dico",
     card(
-      card_header("Valeur Marchande selon la Tranche d'Âge"),
-      plotOutput("plot_age_value", height = "350px")
+      card_header("Dictionnaire des Données & Sources", class = "bg-primary text-dark"),
+      card_body(
+        HTML('
+              <div class="table-responsive" style="font-size: 0.85rem;">
+              <table class="table table-hover table-sm align-middle text-light">
+                <thead class="sticky-top bg-dark text-info">
+                  <tr>
+                    <th>Variable</th>
+                    <th>Définition / Explication</th>
+                    <th>Type / Unité</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="table-secondary text-dark"><th colspan="4">Informations de Base</th></tr>
+                  <tr><td><b>Player</b></td><td>Nom complet du joueur</td><td>Texte</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>Nation</b></td><td>Nationalité sportive</td><td>Texte</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Pos</b></td><td>Poste (FW, MF, DF, GK)</td><td>Catégorie</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Squad</b></td><td>Club d\'appartenance</td><td>Texte</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Comp</b></td><td>Championnat (ex: Ligue 1)</td><td>Texte</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Age</b></td><td>Âge du joueur</td><td>Numérique (Années)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Height</b></td><td><b>Taille du joueur</b></td><td>Numérique (centimètres)</td><td>Kaggle (5.7M+ Records)</td></tr>
+                  <tr><td><b>Foot</b></td><td><b>Pied fort du joueur</b></td><td>Texte</td><td>Kaggle (5.7M+ Records)</td></tr>
+                  <tr><td><b>Born</b></td><td>Année de naissance</td><td>Numérique (Année)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Player Agent Name</b></td><td><b>Agent du joueur</b></td><td>Texte</td><td>Kaggle (5.7M+ Records)</td></tr>
+                  <tr><td><b>value</b></td><td><b>Valeur marchande estimée du joueur</b></td><td>Numérique (€)</td><td><a href="https://www.kaggle.com/datasets/xfkzujqjvx97n/football-datasets" target="_blank">Kaggle (5.7M+ Records)</a></td></tr>
+
+                  <tr class="table-secondary text-dark"><th colspan="4">Temps de Jeu & Apparitions</th></tr>
+                  <tr><td><b>MP</b></td><td>Matchs joués (Apparitions)</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>Starts</b></td><td>Titularisations (Matchs commencés)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Min</b></td><td>Minutes totales jouées</td><td>Numérique (Minutes)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>90s</b></td><td>Équivalent de matchs entiers joués (Minutes / 90)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+
+                  <tr class="table-secondary text-dark"><th colspan="4">Statistiques Offensives</th></tr>
+                  <tr><td><b>Gls</b></td><td>Buts marqués</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a>)</td></tr>
+                  <tr><td><b>Ast</b></td><td>Passes décisives</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>G+A</b></td><td>Somme des Buts et Passes décisives</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>xG</b></td><td>Expected Goals (Probabilité de marquer)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>xAG</b></td><td>Expected Assisted Goals (Probabilité de passe décisive)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>npxG</b></td><td>Expected Goals hors pénaltys</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>G-PK</b></td><td>Buts marqués en excluant les pénaltys</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Sh/90</b></td><td>Nombre de tirs par match</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>SoT/90</b></td><td>Nombre de tirs cadrés par match</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>G/Sh</b></td><td>Nombre de buts par tir (efficacité) </td><td>Numérique (Ration)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  
+
+                  <tr class="table-secondary text-dark"><th colspan="4"> Statistiques Défensives</th></tr>
+                  <tr><td><b>Tkl</b></td><td>Tacles tentés</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>TklW</b></td><td>Tacles réussis (Possession récupérée)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Blocks</b></td><td>Tirs ou passes bloqués</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Int</b></td><td>Interceptions de passes adverses</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Tkl+Int</b></td><td>Total combiné des tacles et interceptions</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Clr</b></td><td>Dégagements défensifs</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Err</b></td><td>Erreurs directes menant à un tir ou but</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+
+                  <tr class="table-secondary text-dark"><th colspan="4">Passes & Créativité</th></tr>
+                  <tr><td><b>PrgP</b></td><td>Passes progressives (vers l\'avant)</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>PrgC</b></td><td>Conduites de balle progressives vers l\'avant</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>KP</b></td><td>Passes clés (menant à un tir)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Cmp%_stats_passing</b></td><td>Pourcentage de passes réussies</td><td>Numérique (%)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Ast_stats_passing</b></td><td>Passes décisives (Depuis les stats de passes)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>xA</b></td><td>Expected Assists (Passes décisives attendues)</td><td>Numérique (Ratio)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>PPA</b></td><td>Passes réussies dans la surface de réparation adverse</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+
+                  <tr class="table-secondary text-dark"><th colspan="4">Statistiques des Gardiens</th></tr>
+                  <tr><td><b>GA</b></td><td>Buts encaissés</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>Saves</b></td><td>Arrêts réalisés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Save%</b></td><td>Pourcentage de tirs arrêtés</td><td>Numérique (%)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>CS</b></td><td>Clean sheets (Matchs sans encaisser)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>CS%</b></td><td>Pourcentage de matchs en Clean sheet</td><td>Numérique (%)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>PKA</b></td><td>Pénaltys subis</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>PKsv</b></td><td>Pénaltys arrêtés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+
+                  <tr class="table-secondary text-dark"><th colspan="4">Possession & Contrôle de Balle</th></tr>
+                  <tr><td><b>Touches</b></td><td>Nombre total de ballons touchés</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>Carries</b></td><td>Nombre total de conduites de balle</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>PrgR</b></td><td>Courses progressives (Conduites percutantes)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Mis</b></td><td>Mauvais contrôles (Faute technique)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Dis</b></td><td>Pertes de balle (Dépossédé)</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+
+                  <tr class="table-secondary text-dark"><th colspan="4">Statistiques Diverses</th></tr>
+                  <tr><td><b>CrdY</b></td><td>Cartons jaunes reçus</td><td>Numérique (Nb)</td><td><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2024-2025" target="_blank">Kaggle (Football Players Stats 24/25)</a></td></tr>
+                  <tr><td><b>CrdR</b></td><td>Cartons rouges reçus</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>PKwon</b></td><td>Pénaltys obtenus</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>PKcon</b></td><td>Pénaltys concédés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                  <tr><td><b>Recov</b></td><td>Ballons récupérés</td><td>Numérique (Nb)</td><td>Kaggle (Football Players Stats 24/25)</td></tr>
+                
+                </tbody>
+              </table>
+            </div>
+          ')
+      )
+    )
+      
     )
   )
-)
