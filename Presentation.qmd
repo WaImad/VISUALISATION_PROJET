@@ -15,7 +15,7 @@ format:
 ::: callout-important
 ## URL de l'application
 
-[Accéder au Dashboard interactif](https://ton-lien-shiny-ici.shinyapps.io/scouting-l1/)
+[Accéder au Dashboard interactif](https://waimad.shinyapps.io/ScoutingDashboard/)
 :::
 
 # Introduction et Problématique
