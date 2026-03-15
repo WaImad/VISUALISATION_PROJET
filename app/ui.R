@@ -37,14 +37,14 @@ page_navbar(
     id = "ma_sidebar",
     h4("Filtres de selection"),
     selectizeInput("squad", "Équipe :", choices = "Chargement..."),
-    selectizeInput("position", "Poste :", choices = "Chargement...", multiple = TRUE),
+    selectizeInput("position", "Poste :", choices = "Chargement...", multiple = FALSE),
     sliderInput("min_minutes", "Minutes jouées minimum :", min = 0,max = 3500, value = 500),
     
     conditionalPanel(
       condition = "input.mes_onglets == 'onglet_stat'",
+      selectizeInput("joueur1", "Sélectionnez un joueur :", choices = "Chargement..."),
       hr(), 
       h4("Mode Comparaison"),
-      selectizeInput("joueur1", "Sélectionnez un joueur :", choices = "Chargement..."),
       checkboxInput("activer_comp", "Comparer avec un autre joueur", FALSE),
       uiOutput("choix_equipe_j2"), 
       uiOutput("select_joueur2") 
@@ -171,7 +171,7 @@ page_navbar(
   ),
   # --- ONGLET 1 : ANALYSE DES PERFORMANCES ---
   nav_panel(
-    title = "Analyse des Performances",
+    title = "Détection de Potentiels",
     value = "onglet_perf",
     
     
@@ -226,7 +226,7 @@ page_navbar(
     )
   ),
   nav_panel(
-    title = "Analyse statistique",
+    title = "Analyse statistique individuelle",
     value = "onglet_stat",
     
     mainPanel(
@@ -273,12 +273,30 @@ page_navbar(
     )
   ),
   
+  # debut onglet Analyse globale du championnat
   nav_panel(
     title = "Analyse Globale du championnat",
     value = "onglet_global",
     card(
-      card_header("Valeur Marchande selon la Tranche d'Âge"),
-      plotOutput("plot_age_value", height = "350px")
+      card_header("Comparaison par Catégories de Performance"),
+      card_body(
+        fluidRow(
+          column(6, selectInput("global_y", "Statistique à mesurer (Axe Vertical) :", 
+                                choices = c("Valeur Marchande" = "value", 
+                                            "Buts + Passes Décisives" = "G.A", 
+                                            "Actions attendues" = "xG.xAG", 
+                                            "Temps de jeu" = "Min"))),
+          column(6, selectInput("global_group", "Regrouper par (Axe Horizontal) :", 
+                                choices = c("Aucun" = "Aucun",
+                                            "Tranches d'âge" = "tranche_age",
+                                            "Niveau de Buts + Passes" = "cat_ga",
+                                            "Niveau de Valeur (€)" = "cat_val",
+                                            "Niveau de Temps de jeu" = "cat_min",
+                                            "Équipe" = "Squad")))
+        ),
+        plotlyOutput("plot_global_final", height = "550px")
+      )
     )
   )
+  # fin
 )
