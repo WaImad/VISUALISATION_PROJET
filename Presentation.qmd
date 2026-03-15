@@ -1,0 +1,82 @@
+---
+title: "Scouting Dashboard : La Data au service du recrutement"
+subtitle: "Analyse des performances vs Valeurs marchandes - Ligue 1 (24/25)"
+author: "COVA CORREA Camilo , FARSI Imad , Foucault Remmy "
+date: last-modified
+lang: fr
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-title: "Sommaire"
+    number-sections: true
+---
+
+::: callout-important
+## URL de l'application
+
+[Accéder au Dashboard interactif](https://ton-lien-shiny-ici.shinyapps.io/scouting-l1/)
+:::
+
+# Introduction et Problématique
+
+Le football moderne est marqué par une inflation constante des prix des joueurs. Dans ce contexte, la capacité d'un club à identifier des profils sur-performants (ceux dont l'apport sportif dépasse le coût financier) est devenue un avantage compétitif majeur.
+
+Notre projet répond aux problématiques suivantes : - Identification de la rentabilité : Comment croiser les statistiques avancées ($xG$, temps de jeu, actions défensives) avec la valeur marchande ? - Scouting de précision : Comment comparer deux joueurs du même poste pour faciliter une décision de recrutement ? - Analyse du marché : Quelles sont les tendances économiques de la Ligue 1 par tranche d'âge ou par club ?
+
+L'objectif final est de transformer une base de données complexe en un outil d'aide visuelle à la décision pour un recruteur ou un analyste de données sportives.
+
+# A propos des données
+
+La pertinence d'une analyse de scouting repose sur la qualité et la diversité des indicateurs collectés. Notre base de données fusionne des statistiques sportives de pointe avec des indicateurs financiers.
+
+## Sources et Volume
+
+Les données utilisées proviennent de differentes base de données de différentes plateformes (Kaggle, FBRef et Transfermarkt) que nous avons croisé pour obtenir un data frame complet . Les données utilisées dans le cadre de cette étude portent sur la saison 2024-2025 de la Ligue 1 (championnat de France). Les valeurs marchandes étant mises à jour trimestriellement pour les championnats majeurs, nous avons retenu la valorisation arrêtée à l'issue de la saison. Ce choix permet de capturer l'impact de l'ensemble des performances sportives de l'année écoulée sur le prix final du joueur. Volume : Plus de 500 joueurs répertoriés. - Richesse : Chaque profil est documenté par plus de 30 variables (sportives, physiques et économiques).
+
+## Indicateurs Clés
+
+Pour répondre à notre problématique, nous nous sommes concentrés sur quatre dimensions majeures :
+
+1.  **Données d'Identité :** Âge, poste, club, taille et pied fort..
+2.  **Performance Sportive :** Buts, passes décisives, tacles et interceptions..
+3.  **Statistiques Avancées (Expected Metrics) :** - *Actions attendues (xG + xAG) :* Probabilité qu'une action (tir ou passe) se transforme en but selon la dangerosité de la situation. C'est l'indicateur de référence pour mesurer la qualité réelle d'un joueur au-delà de la réussite immédiate.
+4.  **Dimension Économique :** La valeur marchande estimée, permettant de calculer le ratio "performance / prix".
+
+::: callout-note
+Toutes les données de performance sont filtrables par temps de jeu minimum pour éviter les biais statistiques liés aux joueurs ayant effectué peu d'apparitions.
+:::
+
+# Descriptif de l'application : Manuel d'utilisation
+
+L'application a été conçue comme un outil de scouting interactif permettant de naviguer intuitivement entre une vision macro-économique du championnat et une analyse micro ciblée sur un joueur.
+
+## 1. Filtrage et Paramétrage (Sidebar gauche)
+
+La première étape consiste à définir votre périmètre de recherche. Les filtres de la barre latérale s'appliquent à l'ensemble des graphiques de l'application : Sélection du Poste et de l'Équipe : Permet d'isoler une catégorie de joueurs ou un effectif spécifique. Curseur de temps de jeu : Indispensable pour éliminer les bruits statistiques en ne gardant que les joueurs ayant un impact réel sur la saison (ex: minimum 500 minutes).
+
+## 2. Analyse de Performance et d'Efficience/Détection de Potentiels
+
+Cet onglet constitue le moteur analytique du Dashboard pour évaluer l'efficacité réelle des joueurs : - Efficience (Réel vs Attendu) : Un graphique croise les buts/passes réels ($G.A$) avec les actions attendues ($xG+xAG$) pour identifier les finisseurs cliniques (au-dessus de la diagonale). Détection de "Pépites" : L'outil calcule dynamiquement la sur-performance et génère un commentaire automatique désignant le joueur le plus efficace du championnat selon vos filtres. Top 10 Dynamiques : Des classements instantanés hiérarchisent les leaders du marché selon leur valeur marchande, leur temps de jeu ou leur impact devant le but. - Analyse des Nationalités : Une vue globale permet d'observer la diversité des profils et l'origine des talents présents dans la sélection.
+
+## 3. Comparaisons et Analyse statistique Individuelle
+
+Le cœur de l'analyse pour un recruteur se situe dans les outils de comparaison : - Fiche Identité : Accès direct à la photo, au pied fort, à la taille et à la valeur marchande du joueur sélectionné. - Graphique Radar : Visualisation des forces du joueur sur 5 indicateurs clés adaptés à son poste (ex : Tacles pour les défenseurs vs Tirs pour les attaquants). - Mode Comparaison : En cochant "Activer la comparaison", vous pouvez superposer le profil d'un second joueur pour un duel statistique direct sur un digramme en radar. - Centiles : Pouvoir placer les joueurs comparés selon tous les joueurs du même poste du championnat (ex : voir commentaire sur l'application). - Nuage de points (Scatter Plot) : Situez le joueur par rapport à tous ses concurrents au même poste sur deux axes personnalisables (ex: Valeur vs Minutes jouées).
+
+## 4. Explorateur de données
+
+Dernière étape du processus, cet onglet affiche un tableau détaillé et propre de votre sélection. Il permet une vérification finale des chiffres et un export visuel des données de performance et de valeur.
+
+## 5. Analyse Globale du Championnat
+
+Cet onglet est dédié à la compréhension des structures du marché et des performances collectives : - Analyse par Boxplot : Visualisez la distribution de la valeur ou des statistiques selon des classes créées dynamiquement (Âge, Performance, Temps de jeu). Segmentation intelligente : L'outil découpe automatiquement les joueurs en 4 groupes basés sur les données réelles, affichant les intervalles exacts (ex: "Buts + Passes : 0 à 3") et le nombre de joueurs par groupe ($n$) . Visualisation de l'efficience : Un graphique croise les actions attendues ($xG+xAG$) et les buts réels pour identifier immédiatement les joueurs en sur-performance ou sous-performance.
+
+::: callout-note
+L'application s'adapte en temps réel : si vous filtrez une équipe avec peu de joueurs, les graphiques globaux recalculent automatiquement les paliers de performance pour rester statistiquement cohérents.
+:::
+
+# Conclusion
+
+Ce Dashboard interactif transforme une base de données complexe de plus de 400 joueurs en un outil d'aide à la décision stratégique. En croisant les performances sportives avec les réalités économiques de la Ligue 1, il permet d'identifier non seulement les leaders actuels, mais aussi les joueurs sous-évalués dont l'efficacité dépasse la valeur marchande.
+
+L'outil offre ainsi une réponse concrète aux défis du scouting moderne : gagner en précision, réduire l'incertitude lors des recrutements et optimiser la gestion des effectifs grâce à la puissance de la Data Visualisation.
